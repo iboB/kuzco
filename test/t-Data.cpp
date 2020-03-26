@@ -6,7 +6,7 @@ TEST_SUITE_BEGIN("Kuzco Data");
 
 using namespace kuzco::impl;
 
-TEST_CASE("construction")
+TEST_CASE("Construction")
 {
     Data d;
     CHECK_FALSE(d.payload);
@@ -34,7 +34,7 @@ TEST_CASE("construction")
     CHECK(sd2.qdata == sd.qdata);
 }
 
-TEST_CASE("copy")
+TEST_CASE("Copy")
 {
     Data d = Data::construct<std::vector<int>>(5, 0);
     auto p = std::reinterpret_pointer_cast<std::vector<int>>(d.payload);

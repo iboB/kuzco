@@ -75,11 +75,14 @@ Member::Member(const Member& other)
     if (ctx.topContext().type == ContextType::New)
     {
         // regular deep copy for new objects
+        // not touching the source
         m_data = other.m_data.copy();
     }
     else
     {
         // shallow copy when in a transaction
+        // safe to touch the source
+        // we're cow-ing so it's not a new object
         m_data = other.m_data;
     }
 }
@@ -90,7 +93,18 @@ Member::Member(Member&& other) noexcept
     other.m_data = {};
 }
 
-void Member::writeLock()
+Member::Member(NewObject&& obj) noexcept
+{
+    m_data = std::move(obj.m_data);
+    obj.m_data = {};
+}
+
+void Member::resetData(Data&& d)
+{
+    m_data = std::move(d);
+}
+
+void Member::cowWriteLock()
 {
     auto top = ctx.topContext();
 
@@ -108,9 +122,8 @@ void Member::writeLock()
 
 
 RootObject::RootObject(NewObject&& obj) noexcept
-    : m_root(std::move(obj.m_data))
+    : m_root(std::move(obj))
 {
-    obj.m_data = {};
     m_detachedRoot = m_root.m_data.payload;
 }
 
@@ -118,7 +131,7 @@ void* RootObject::beginTransaction()
 {
     m_transactionMutex.lock();
     ctx.pushContext(this);
-    m_root.writeLock();
+    m_root.cowWriteLock();
     return m_root.m_data.payload.get();
 }
 
@@ -140,19 +153,18 @@ Data RootObject::openDataEdit(Data d)
 {
     for (auto& o : m_openEdits)
     {
-        if (o.current.payload == d.payload)
+        if (o.payload == d.payload)
         {
             // object is already being edited
-            return o.current;
+            return o;
         }
     }
 
     // this is a newly open edit
     // cow and return
     auto& newEdit = m_openEdits.emplace_back();
-    newEdit.detached = d;
-    newEdit.current = d.copy();
-    return newEdit.current;
+    newEdit = d.copy();
+    return newEdit;
 }
 
 } // namespace impl

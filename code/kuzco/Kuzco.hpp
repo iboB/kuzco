@@ -69,25 +69,28 @@ protected:
 
     Data m_data;
 
-    friend class RootObject;
+    friend class Member;
 };
 
 // base class for members
 class Member
 {
-public:
-    const Data& _rawData() const { return m_data; }
-
 protected:
     Member(Data d);
     Member(const Member& other);
     Member(Member&& other) noexcept;
+    Member(NewObject&& obj) noexcept;
+
+    const Data& rawData() const { return m_data; }
 
     const void* data() const { return m_data.qdata; }
-    void* data() { writeLock(); return m_data.qdata; }
+    void* cowData() { cowWriteLock(); return m_data.qdata; }
+
+    void resetData(Data&& d);
 
 private:
-    void writeLock();
+    // write lock through copy on write
+    void cowWriteLock();
 
     Data m_data;
 
@@ -112,12 +115,7 @@ private:
     std::mutex m_transactionMutex;
 
     Data openDataEdit(Data d);
-    struct EditedData
-    {
-        Data current; // the new version of the data
-        Data detached; // the detache version of the data
-    };
-    std::vector<EditedData> m_openEdits;
+    std::vector<Data> m_openEdits;
 
     Member m_root;
     Data::Payload m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
@@ -147,6 +145,52 @@ public:
 
     const T* operator->() const { return reinterpret_cast<const T*>(data()); }
     const T& operator*() const { return *reinterpret_cast<const T*>(data()); }
+
+    std::shared_ptr<const T> payload() const { return std::reinterpret_pointer_cast<const T>(m_data.payload); }
+};
+
+template <typename T>
+class Member : public impl::Member
+{
+public:
+    template <typename... Args>
+    Member(Args&&... args)
+        : impl::Member(impl::Data::construct<T>(std::forward<Args>(args)...))
+    {}
+
+    Member(const Member& other) = default;
+    Member& operator=(const Member& other) = default;
+    Member(Member&& other) = default;
+    Member& operator=(Member&& other) = default;
+
+    explicit Member(NewObject<T>&& obj) noexcept
+        : impl::Member(std::move(obj))
+    {}
+
+    const T* operator->() const { return reinterpret_cast<const T*>(data()); }
+    const T& operator*() const { return *reinterpret_cast<const T*>(data()); }
+
+    T* operator->() { return reinterpret_cast<T*>(cowData()); }
+    T& operator*() { return *reinterpret_cast<T*>(cowData()); }
+
+    Member& operator=(const T& t)
+    {
+        resetData(impl::Data::construct<T>(t))
+        return *this;
+    }
+
+    Member& operator=(T&& t)
+    {
+        resetData(impl::Data::construct<T>(std::move(t)))
+        return *this;
+    }
+
+    Member& operator=(NewObject<T>&& obj)
+    {
+        resetData(std::move(obj.m_data));
+    }
+
+    std::shared_ptr<const T> payload() const { return std::reinterpret_pointer_cast<const T>(rawData().payload); }
 };
 
 } // namespace kuzco
