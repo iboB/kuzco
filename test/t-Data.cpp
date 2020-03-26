@@ -1,8 +1,8 @@
 #pragma once
 
-#include "doctest.hpp"
-
 #include <kuzco/Kuzco.hpp>
+
+#include "doctest.hpp"
 
 TEST_SUITE_BEGIN("Kuzco Data");
 

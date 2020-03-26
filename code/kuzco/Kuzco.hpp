@@ -48,25 +48,104 @@ struct Data
     }
 };
 
-//class RootObject;
-//
-//class NewObject
-//{
-//protected:
-//    NewObject();
-//    // we open and close each access to the new object
-//    // that's why we need a set function which is separate from the constructor
-//    // the child class will invoke the appropriate constrcutor in its body
-//    void setData(Data d);
-//
-//    // explicit functions to call when writing to data
-//    void openDataEdit();
-//    void closeDataEdit();
-//
-//    const void* data() const { return m_data.payload.get(); }
-//
-//    Data m_data;
-//};
+class RootObject;
 
-}
+// base class for new objects
+class NewObject
+{
+protected:
+    NewObject();
+
+    // we open and close each access to the new object
+    // that's why we need a set function which is separate from the constructor
+    // the child class will invoke the appropriate constrcutor in its body
+    void setData(Data d);
+
+    // explicit functions to call when writing to data
+    void openDataEdit();
+    void closeDataEdit();
+
+    const void* data() const { return m_data.qdata; }
+
+private:
+    Data m_data;
+
+    friend class RootObject;
+};
+
+// base class for members
+class Member
+{
+public:
+    const Data& _rawData() const { return m_data; }
+
+protected:
+    Member(Data d);
+    Member(const Member& other);
+    Member(Member&& other) noexcept;
+
+    const void* data() const { return m_data.qdata; }
+    void* data() { writeLock(); return m_data.qdata; }
+
+private:
+    void writeLock();
+
+    Data m_data;
+
+    friend class RootObject;
+};
+
+class RootObject
+{
+public:
+    // safe even during a transaction
+    Data::Payload detachedRoot() const;
+
+protected:
+    RootObject(NewObject&& obj) noexcept;
+
+    void* beginTransaction(); // returns a non-const pointer to the underlying member data
+    void endTransaction();
+
+private:
+    friend class Member;
+
+    std::mutex m_transactionMutex;
+
+    Data openDataEdit(Data d);
+    struct EditedData
+    {
+        Data current; // the new version of the data
+        Data detached; // the detache version of the data
+    };
+    std::vector<EditedData> m_openEdits;
+
+    Member m_root;
+    Data::Payload m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
+};
+
+} // namespace impl
+
+template <typename T>
+class NewObject : public impl::NewObject
+{
+public:
+    template <typename... Args>
+    NewObject(Args&&... args)
+    {
+        setData(impl::Data::construct<T>(std::forward<Args>(args)...));
+    }
+
+    struct Write : public impl::NewObject::TouchData
+    {
+        Write(NewObject& m) : impl::NewObject::TouchData(m) {}
+        T* operator->() { return reinterpret_cast<T*>(get()); }
+    };
+
+    Write w() { return Write(*this); };
+
+    const T* operator->() const { return reinterpret_cast<const T*>(data()); }
+    const T& operator*() const { return *reinterpret_cast<const T*>(data()); }
+};
+
 } // namespace kuzco
