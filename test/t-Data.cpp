@@ -1,5 +1,3 @@
-#pragma once
-
 #include <kuzco/Kuzco.hpp>
 
 #include "doctest.hpp"

@@ -135,7 +135,7 @@ public:
         setData(impl::Data::construct<T>(std::forward<Args>(args)...));
     }
 
-    struct Write : public impl::NewObject::TouchData
+    struct Write
     {
         Write(NewObject& o) : m_object(o) { o.openDataEdit(); }
         NewObject& m_object;
