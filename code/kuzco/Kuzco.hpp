@@ -175,13 +175,13 @@ public:
 
     Member& operator=(const T& t)
     {
-        resetData(impl::Data::construct<T>(t))
+        resetData(impl::Data::construct<T>(t));
         return *this;
     }
 
     Member& operator=(T&& t)
     {
-        resetData(impl::Data::construct<T>(std::move(t)))
+        resetData(impl::Data::construct<T>(std::move(t)));
         return *this;
     }
 
