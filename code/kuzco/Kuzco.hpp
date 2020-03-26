@@ -67,7 +67,6 @@ protected:
 
     const void* data() const { return m_data.qdata; }
 
-private:
     Data m_data;
 
     friend class RootObject;
@@ -138,8 +137,10 @@ public:
 
     struct Write : public impl::NewObject::TouchData
     {
-        Write(NewObject& m) : impl::NewObject::TouchData(m) {}
-        T* operator->() { return reinterpret_cast<T*>(get()); }
+        Write(NewObject& o) : m_object(o) { o.openDataEdit(); }
+        NewObject& m_object;
+        T* operator->() { return reinterpret_cast<T*>(m_object.m_data.qdata); }
+        ~Write() { m_object.closeDataEdit(); }
     };
 
     Write w() { return Write(*this); };
