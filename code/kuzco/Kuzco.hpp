@@ -54,13 +54,27 @@ class Member
 {
 protected:
     Member();
+    ~Member();
 
     void takeData(Member& other);
     void takeData(NewObject& other);
 
+    // check if we're in a deep or shallow copy state
+    // we're deep when working with new objects
+    // and shallow when we're working with state objects within a transaction
     static bool deep();
+
+    // if the we're working on new objects we're detached
+    // if we're inisde a transaction a search is performed in order to save copies
     bool detached() const;
+
+    // deaches the object with a new data
+    // only valid if not detached
     void detachWith(Data data);
+
+    // perform the detached check
+    // detach if needed
+    // reassign data from other source
     void checkedDetachTake(Member& other);
     void checkedDetachTake(NewObject& other);
 
@@ -86,7 +100,9 @@ private:
 
     std::mutex m_transactionMutex;
 
-    Data openDataEdit(Data d);
+    // check if the data is in the open edits
+    bool isOpenEdit(const Data& d) const;
+    void openEdit(const Data& d);
     std::vector<Data> m_openEdits;
 
     Member m_root;

@@ -194,7 +194,8 @@ TEST_CASE("New object with members")
     CHECK(LC<PersonData>::ma == 0);
 
     p.w()->a = Employee{};
-    CHECK(apl != p->a.payload());
+    CHECK(apl == p->a.payload());
+    CHECK(p->a->data->name.empty());
     CHECK(p->a->salary == 0);
 
     CHECK(LC<Pair>::alive == 1);
@@ -203,36 +204,36 @@ TEST_CASE("New object with members")
     CHECK(LC<Pair>::mc == 0);
     CHECK(LC<Pair>::ca == 0);
     CHECK(LC<Pair>::ma == 0);
-    CHECK(LC<Employee>::alive == 3);
+    CHECK(LC<Employee>::alive == 2);
     CHECK(LC<Employee>::dc == 3);
     CHECK(LC<Employee>::cc == 0);
-    CHECK(LC<Employee>::mc == 1);
+    CHECK(LC<Employee>::mc == 0);
     CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 0);
-    CHECK(LC<PersonData>::alive == 3);
+    CHECK(LC<Employee>::ma == 1);
+    CHECK(LC<PersonData>::alive == 2);
     CHECK(LC<PersonData>::dc == 3);
     CHECK(LC<PersonData>::cc == 0);
     CHECK(LC<PersonData>::mc == 0);
     CHECK(LC<PersonData>::ca == 0);
     CHECK(LC<PersonData>::ma == 0);
 
-    Employee c;
-    c.data->name = "Charlie";
-    c.data->age = 22;
-    c.department = std::string("front desk");
+    // NewObject<Employee> c;
+    // c.w()->data->name = "Charlie";
+    // c.w()->data->age = 22;
+    // c.w()->department = std::string("front desk");
 
-    p.w()->a = c;
+    // p.w()->a = std::move(c);
 
-    CHECK(LC<Employee>::alive == 4);
-    CHECK(LC<Employee>::dc == 4);
-    CHECK(LC<Employee>::cc == 1);
-    CHECK(LC<Employee>::mc == 1);
-    CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 0);
-    CHECK(LC<PersonData>::alive == 4);
-    CHECK(LC<PersonData>::dc == 4);
-    CHECK(LC<PersonData>::cc == 1);
-    CHECK(LC<PersonData>::mc == 0);
-    CHECK(LC<PersonData>::ca == 0);
-    CHECK(LC<PersonData>::ma == 0);
+    // CHECK(LC<Employee>::alive == 3);
+    // CHECK(LC<Employee>::dc == 4);
+    // CHECK(LC<Employee>::cc == 0);
+    // CHECK(LC<Employee>::mc == 1);
+    // CHECK(LC<Employee>::ca == 0);
+    // CHECK(LC<Employee>::ma == 0);
+    // CHECK(LC<PersonData>::alive == 3);
+    // CHECK(LC<PersonData>::dc == 4);
+    // CHECK(LC<PersonData>::cc == 0);
+    // CHECK(LC<PersonData>::mc == 0);
+    // CHECK(LC<PersonData>::ca == 0);
+    // CHECK(LC<PersonData>::ma == 0);
 }

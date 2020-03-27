@@ -68,21 +68,59 @@ void NewObject::closeDataEdit()
 ////////////////////////////////////////////////////////////////////////////////
 // Member
 
-// void Member::cowWriteLock()
-// {
-//     auto top = ctx.topContext();
-//     if (top.type == ContextType::Transaction)
-//     {
-//         // when in a transaction add the data to the list of edited datas for the transaction
-//         // this way a data doesn't need to be cloned multiple times
-//         auto root = reinterpret_cast<RootObject*>(top.object);
-//         m_data = root->openDataEdit(m_data);
-//     }
-// }
+Member::Member() = default;
+Member::~Member() = default;
+
+void Member::takeData(Member& other)
+{
+    m_data = std::move(other.m_data);
+    other.m_data = {};
+}
+
+void Member::takeData(NewObject& other)
+{
+    m_data = std::move(other.m_data);
+    other.m_data = {};
+}
+
+bool Member::deep()
+{
+    return ctx.topContext().type == ContextType::New;
+}
+
+bool Member::detached() const
+{
+    auto& top = ctx.topContext();
+    if (top.type == ContextType::New) return true;
+    auto root = reinterpret_cast<RootObject*>(top.object);
+    return root->isOpenEdit(m_data);
+}
+
+void Member::detachWith(Data data)
+{
+    m_data = std::move(data);
+    auto& top = ctx.topContext();
+    assert(top.type == ContextType::New);
+    auto root = reinterpret_cast<RootObject*>(top.object);
+    return root->openEdit(m_data);
+}
+
+void Member::checkedDetachTake(Member& other)
+{
+    if (detached()) m_data = std::move(other.m_data);
+    else detachWith(std::move(other.m_data));
+    other.m_data = {};
+}
+
+void Member::checkedDetachTake(NewObject& other)
+{
+    if (detached()) m_data = std::move(other.m_data);
+    else detachWith(std::move(other.m_data));
+    other.m_data = {};
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // RootObject
-
 
 RootObject::RootObject(NewObject&& obj) noexcept
 {
@@ -112,21 +150,19 @@ Data::Payload RootObject::detachedRoot() const
     return std::atomic_load_explicit(&m_detachedRoot, std::memory_order_relaxed);
 }
 
-// Data RootObject::openDataEdit(Data d)
-// {
-//     for (auto& o : m_openEdits)
-//     {
-//         if (o.payload == d.payload)
-//         {
-//             // object is already being edited
-//             return o;
-//         }
-//     }
+bool RootObject::isOpenEdit(const Data& d) const
+{
+    for (auto& o : m_openEdits)
+    {
+        if (o.payload == d.payload) return true;
+    }
+    return false;
+}
 
-//     // this is a newly open edit
-//     // cow and return
-//     return m_openEdits.emplace_back(d.copy());
-// }
+void RootObject::openEdit(const Data& d)
+{
+    m_openEdits.emplace_back(d);
+}
 
 } // namespace impl
 } // namespace kuzco
