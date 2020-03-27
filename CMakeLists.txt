@@ -21,7 +21,6 @@ if(dev_mode)
     include(./dev.cmake)
 endif()
 
-
 add_subdirectory(code)
 
 if(KUZCO_BUILD_SCRATCH)
