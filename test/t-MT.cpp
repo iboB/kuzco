@@ -8,6 +8,7 @@
 #include <string_view>
 #include <random>
 #include <algorithm>
+#include <atomic>
 
 TEST_SUITE_BEGIN("Kuzco multi-threaded");
 
@@ -38,7 +39,7 @@ struct Company
     std::optional<Member<Employee>> cto;
 };
 
-using RootPtr = std::shared_ptr<const Company>;
+using DRoot = DetachedObject<Company>;
 
 std::random_device rdevice;
 std::mutex rmutex;
@@ -50,8 +51,12 @@ uint32_t device()
 
 struct SingleWriterTest
 {
+    std::atomic_int goOn3 = {};
+
     void writer()
     {
+        ++goOn3;
+        while (goOn3 != 3); // silly spin
         for (auto& f : writes)
         {
             auto mut = root->beginTransaction();
@@ -66,14 +71,17 @@ struct SingleWriterTest
         auto localReads = reads;
         std::shuffle(localReads.begin(), localReads.end(), rnd);
 
+        ++goOn3;
+        while (goOn3 != 3); // silly spin
+
         for (auto& f : localReads)
         {
-            auto d = root->detachedPayload();
+            auto d = root->detach();
             f(d);
         }
         for (auto& f : localReads)
         {
-            auto d = root->detachedPayload();
+            auto d = root->detach();
             f(d);
         }
     }
@@ -90,7 +98,7 @@ struct SingleWriterTest
     }
 
     std::vector<std::function<void(Company*)>> writes;
-    std::vector<std::function<void(RootPtr)>> reads;
+    std::vector<std::function<void(DRoot)>> reads;
 
     std::unique_ptr<RootObject<Company>> root;
 };
@@ -114,32 +122,32 @@ TEST_CASE("Single writer")
     SingleWriterTest test;
 
     test.reads = {
-        [](RootPtr c) {
+        [](DRoot c) {
             CHECK_FALSE(c->cto.has_value());
         },
-        [](RootPtr c) {
+        [](DRoot c) {
             CHECK(c->staff.size() > 3);
             for (auto& e : c->staff)
             {
                 CHECK(e->data->name.front() == 'A');
             }
         },
-        [](RootPtr c) {
+        [](DRoot c) {
             CHECK(c->name == "ACME");
         },
-        [](RootPtr c) {
+        [](DRoot c) {
             for (auto& e : c->staff)
             {
                 CHECK(int(e->salary) % 5 == 0);
             }
         },
-        [](RootPtr c) {
+        [](DRoot c) {
             for (auto& e : c->staff)
             {
                 CHECK(e->data->age < 50);
             }
         },
-        [](RootPtr c) {
+        [](DRoot c) {
             for (auto& e : c->staff)
             {
                 CHECK(e->department->length() == 3);
@@ -151,6 +159,25 @@ TEST_CASE("Single writer")
         [](Company* c) {
             c->cto = {};
             c->cto.reset();
+        },
+        [](Company* c) {
+            c->staff.erase(c->staff.begin() + 2);
+        },
+        [](Company* c) {
+            c->staff.emplace_back(Employee{ {"Alfred", 44}, "dev", 5 });
+        },
+        [](Company* c) {
+            c->staff.erase(c->staff.begin());
+        },
+        [](Company* c) {
+            for (auto& d : c->staff)
+            {
+                d->salary += 10;
+            }
+        },
+        [](Company* c) {
+            c->staff[0]->data->age = 13;
+            c->staff[0]->data->name = "Allie";
         },
     };
 
