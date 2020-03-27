@@ -146,6 +146,29 @@ public:
 };
 
 template <typename T>
+class Member;
+
+template <typename T>
+class DetachedObject
+{
+public:
+    const T* get() const { return m_qdata; }
+    const T* operator->() const { return get(); }
+    const T& operator*() const { return *get(); }
+
+private:
+    DetachedObject(std::shared_ptr<const T> payload)
+        : m_qdata(payload.get())
+        , m_payload(std::move(payload))
+    {}
+    friend class RootObject<T>;
+    friend class Member<T>;
+
+    const T* m_qdata;
+    std::shared_ptr<const T> m_payload;
+};
+
+template <typename T>
 class Member : public impl::Member
 {
 public:
@@ -207,6 +230,7 @@ public:
     T* operator->() { return get(); }
     T& operator*() { return *get(); }
 
+    DetachedObject<T> detach() const { return DetachedObject(payload()); }
     std::shared_ptr<const T> payload() const { return std::reinterpret_pointer_cast<const T>(m_data.payload); }
 
 private:
@@ -234,7 +258,45 @@ public:
 
     void endTransaction() { impl::RootObject::endTransaction(); }
 
+    DetachedObject<T> detach() const { return DetachedObject(detachedPayload()); }
     std::shared_ptr<const T> detachedPayload() const { return std::reinterpret_pointer_cast<const T>(detachedRoot()); }
 };
+
+// comparisons
+template <typename T>
+bool operator==(const DetachedObject<T>& a, const DetachedObject<T>& b)
+{
+    return a.get() == b.get();
+}
+
+template <typename T>
+bool operator!=(const DetachedObject<T>& a, const DetachedObject<T>& b)
+{
+    return a.get() != b.get();
+}
+
+template <typename T>
+bool operator==(const DetachedObject<T>& a, const Member<T>& b)
+{
+    return a.get() == b.get();
+}
+
+template <typename T>
+bool operator!=(const DetachedObject<T>& a, const Member<T>& b)
+{
+    return a.get() != b.get();
+}
+
+template <typename T>
+bool operator==(const Member<T>& a, const Member<T>& b)
+{
+    return a.get() == b.get();
+}
+
+template <typename T>
+bool operator!=(const Member<T>& a, const Member<T>& b)
+{
+    return a.get() != b.get();
+}
 
 } // namespace kuzco

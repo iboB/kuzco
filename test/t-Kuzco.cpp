@@ -308,7 +308,7 @@ TEST_CASE("Basic state")
     clearAllCounters();
     RootObject root = NewObject<Pair>{};
 
-    auto pre = root.detachedPayload();
+    auto pre = root.detach();
 
     CHECK(LC<Pair>::alive == 1);
     CHECK(LC<Pair>::dc == 1);
@@ -324,7 +324,7 @@ TEST_CASE("Basic state")
     mod->a->data->age = 104;
     root.endTransaction();
 
-    auto post = root.detachedPayload();
+    auto post = root.detach();
 
     CHECK(pre != post);
     CHECK(pre->b.payload() == post->b.payload());
@@ -342,7 +342,7 @@ TEST_CASE("Complex state")
     mod->staff.resize(5);
     root.endTransaction();
 
-    auto d = root.detachedPayload();
+    auto d = root.detach();
     CHECK(mod->staff.size() == 5);
 
     CHECK(LC<Employee>::alive == 5);
