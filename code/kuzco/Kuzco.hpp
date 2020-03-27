@@ -134,14 +134,14 @@ public:
 
     Member(const Member& other)
     {
-        if (deep()) m_data = impl::Data::construct<T>(other.get());
+        if (deep()) m_data = impl::Data::construct<T>(*other.get());
         else m_data = other.m_data;
     }
 
     Member& operator=(const Member& other)
     {
         if (detached()) *qget() = *other.get();
-        else detachWith(impl::Data::construct<T>(other.get()));
+        else detachWith(impl::Data::construct<T>(*other.get()));
     }
 
     Member(Member&& other) { takeData(other); }
