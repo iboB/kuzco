@@ -9,7 +9,8 @@ TEST_SUITE_BEGIN("Kuzco Objects");
 
 using namespace kuzco;
 
-// lifetime counter
+namespace
+{
 template <typename T>
 struct LC
 {
@@ -89,6 +90,38 @@ struct PersonData : public LC<PersonData>
     int age = 0;
 };
 
+
+struct Employee : public LC<Employee>
+{
+    Member<PersonData> data;
+    Member<std::string> department;
+    double salary = 0;
+};
+
+struct Pair : public LC<Pair>
+{
+    Member<Employee> a;
+    Member<Employee> b;
+    std::string type;
+};
+
+using Blob = std::unique_ptr<std::vector<int>>;
+
+struct Boss : public LC<Boss>
+{
+    Member<PersonData> data;
+    Member<Blob> blob;
+};
+
+struct Company
+{
+    std::vector<Member<Employee>> staff;
+    Member<Boss> ceo;
+    std::optional<Member<Boss>> cto;
+};
+
+} // anonymous namespace
+
 TEST_SUITE_BEGIN("Kuzco");
 
 TEST_CASE("PersonData new object")
@@ -129,20 +162,6 @@ TEST_CASE("PersonData new object")
     CHECK(PersonData::dc == 0);
     CHECK(PersonData::mc == 0);
 }
-
-struct Employee : public LC<Employee>
-{
-    Member<PersonData> data;
-    Member<std::string> department;
-    double salary = 0;
-};
-
-struct Pair : public LC<Pair>
-{
-    Member<Employee> a;
-    Member<Employee> b;
-    std::string type;
-};
 
 TEST_CASE("New object with members")
 {
@@ -247,21 +266,6 @@ TEST_CASE("New object with members")
     CHECK(LC<PersonData>::ma == 0);
 }
 
-using Blob = std::unique_ptr<std::vector<int>>;
-
-struct Boss : public LC<Boss>
-{
-    Member<PersonData> data;
-    //Member<Blob> blob;
-};
-
-struct Company
-{
-    std::vector<Member<Employee>> staff;
-    Member<Boss> ceo;
-    std::optional<Member<Boss>> cto;
-};
-
 TEST_CASE("Variable objects")
 {
     clearAllCounters();
@@ -293,13 +297,10 @@ TEST_CASE("Variable objects")
     CHECK(LC<Boss>::ca == 0);
     CHECK(LC<Boss>::ma == 0);
 
-    NewObject<Company> ms;
-    acme.w()->staff = ms->staff;
-
-    //NewObject<Boss> ceo;
-    //ceo.w()->data->name = "John";
-    //ceo.w()->blob = NewObject<Blob>(std::make_unique<std::vector<int>>(10));
-    //acme.w()->ceo = std::move(ceo);
+    acme.w()->ceo->data->name = "Jeff";
+    acme.w()->ceo->blob = std::make_unique<std::vector<int>>(10);
+    CHECK(acme->ceo->data->name == "Jeff");
+    CHECK((*acme->ceo->blob)->size() == 10); // ugly syntax... but nothing we can do :(
 }
 
 TEST_CASE("Basic state")
@@ -340,4 +341,14 @@ TEST_CASE("Complex state")
     auto mod = root.beginTransaction();
     mod->staff.resize(5);
     root.endTransaction();
+
+    auto d = root.detachedPayload();
+    CHECK(mod->staff.size() == 5);
+
+    CHECK(LC<Employee>::alive == 5);
+    CHECK(LC<Employee>::dc == 5);
+    CHECK(LC<Employee>::cc == 0);
+    CHECK(LC<Employee>::mc == 0);
+    CHECK(LC<Employee>::ca == 0);
+    CHECK(LC<Employee>::ma == 0);
 }

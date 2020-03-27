@@ -157,16 +157,28 @@ public:
 
     Member(const Member& other)
     {
-        if (deep()) m_data = impl::Data::construct<T>(*other.get());
-        else m_data = other.m_data;
+        // here we always do a shallow copy
+        // the way to add members to the state should always happen through new objects
+        // or value constructors
+        // it should be impossible to add a deep object with a value constructor as you can't construct it without a NewObject wrapper
+        // so here we can safely assume that the source is ether a COW (must be shallow)
+        // or an interstate exchange - again should be shallow and detachable
+        // if we absolutely need partial deep exchanges, we can uncomment the following two lines and the ones in the copy assign operator
+        // BUT to make it work we must cary a copy function with the data as it would be impossible
+        // to compile if we have non-copyable objects
+        //if (deep()) m_data = impl::Data::construct<T>(*other.get());
+        //else
+            m_data = other.m_data;
     }
 
-    Member& operator=(const Member& other)
-    {
-        if (detached()) *qget() = *other.get();
-        else detachWith(impl::Data::construct<T>(*other.get()));
-        return *this;
-    }
+    // this is intentionally deleted
+    // see comments in copy constructor on why
+    Member& operator=(const Member& other) = delete;
+    //{
+    //    if (detached()) *qget() = *other.get();
+    //    else detachWith(impl::Data::construct<T>(*other.get()));
+    //    return *this;
+    //}
 
     Member(Member&& other) noexcept { takeData(other); }
     Member& operator=(Member&& other) { checkedDetachTake(other); return *this; }
