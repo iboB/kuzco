@@ -68,62 +68,25 @@ void NewObject::closeDataEdit()
 ////////////////////////////////////////////////////////////////////////////////
 // Member
 
-Member::Member(Data d) : m_data(d) {}
-
-Member::Member(const Member& other)
-{
-    if (ctx.topContext().type == ContextType::New)
-    {
-        // regular deep copy for new objects
-        // not touching the source
-        m_data = other.m_data.copy();
-    }
-    else
-    {
-        // shallow copy when in a transaction
-        // safe to touch the source
-        // we're cow-ing so it's not a new object
-        m_data = other.m_data;
-    }
-}
-
-Member::Member(Member&& other) noexcept
-{
-    m_data = std::move(other.m_data);
-    other.m_data = {};
-}
-
-Member::Member(NewObject&& obj) noexcept
-{
-    m_data = std::move(obj.m_data);
-    obj.m_data = {};
-}
-
-void Member::resetData(Data&& d)
-{
-    m_data = std::move(d);
-}
-
-void Member::cowWriteLock()
-{
-    auto top = ctx.topContext();
-
-    if (top.type == ContextType::Transaction)
-    {
-        // when in a transaction add the data to the list of edited datas for the transaction
-        // this way a data doesn't need to be cloned multiple times
-        auto root = reinterpret_cast<RootObject*>(top.object);
-        m_data = root->openDataEdit(m_data);
-    }
-}
+// void Member::cowWriteLock()
+// {
+//     auto top = ctx.topContext();
+//     if (top.type == ContextType::Transaction)
+//     {
+//         // when in a transaction add the data to the list of edited datas for the transaction
+//         // this way a data doesn't need to be cloned multiple times
+//         auto root = reinterpret_cast<RootObject*>(top.object);
+//         m_data = root->openDataEdit(m_data);
+//     }
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 // RootObject
 
 
 RootObject::RootObject(NewObject&& obj) noexcept
-    : m_root(std::move(obj))
 {
+    m_root.takeData(obj);
     m_detachedRoot = m_root.m_data.payload;
 }
 
@@ -131,7 +94,7 @@ void* RootObject::beginTransaction()
 {
     m_transactionMutex.lock();
     ctx.pushContext(this);
-    m_root.cowWriteLock();
+    //m_root.cowWriteLock();
     return m_root.m_data.payload.get();
 }
 
@@ -149,23 +112,21 @@ Data::Payload RootObject::detachedRoot() const
     return std::atomic_load_explicit(&m_detachedRoot, std::memory_order_relaxed);
 }
 
-Data RootObject::openDataEdit(Data d)
-{
-    for (auto& o : m_openEdits)
-    {
-        if (o.payload == d.payload)
-        {
-            // object is already being edited
-            return o;
-        }
-    }
+// Data RootObject::openDataEdit(Data d)
+// {
+//     for (auto& o : m_openEdits)
+//     {
+//         if (o.payload == d.payload)
+//         {
+//             // object is already being edited
+//             return o;
+//         }
+//     }
 
-    // this is a newly open edit
-    // cow and return
-    auto& newEdit = m_openEdits.emplace_back();
-    newEdit = d.copy();
-    return newEdit;
-}
+//     // this is a newly open edit
+//     // cow and return
+//     return m_openEdits.emplace_back(d.copy());
+// }
 
 } // namespace impl
 } // namespace kuzco

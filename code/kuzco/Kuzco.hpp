@@ -16,33 +16,12 @@ struct Data
 
     void* qdata = nullptr; // quick access pointer to save dereferencs of the internal shared pointer
     Payload payload;
-    Payload(*copyConstruct)(const void*) = nullptr;
 
-    template <typename T>
-    static Data createType()
-    {
-        Data ret;
-        ret.copyConstruct = [](const void* src) -> Payload { return std::make_shared<T>(*reinterpret_cast<const T*>(src)); };
-        return ret;
-    }
     template <typename T, typename... Args>
     static Data construct(Args&&... args)
     {
-        Data ret = createType<T>();
-        ret.payload = std::make_shared<T>(std::forward<Args>(args)...);
-        ret.qdata = ret.payload.get();
-        return ret;
-    }
-    Data type() const
-    {
         Data ret;
-        ret.copyConstruct = copyConstruct;
-        return ret;
-    }
-    Data copy() const
-    {
-        Data ret = type();
-        ret.payload = copyConstruct(payload.get());
+        ret.payload = std::make_shared<T>(std::forward<Args>(args)...);
         ret.qdata = ret.payload.get();
         return ret;
     }
@@ -65,8 +44,6 @@ protected:
     void openDataEdit();
     void closeDataEdit();
 
-    const void* data() const { return m_data.qdata; }
-
     Data m_data;
 
     friend class Member;
@@ -76,21 +53,16 @@ protected:
 class Member
 {
 protected:
-    Member(Data d);
-    Member(const Member& other);
-    Member(Member&& other) noexcept;
-    Member(NewObject&& obj) noexcept;
+    Member();
 
-    const Data& rawData() const { return m_data; }
+    void takeData(Member& other);
+    void takeData(NewObject& other);
 
-    const void* data() const { return m_data.qdata; }
-    void* cowData() { cowWriteLock(); return m_data.qdata; }
-
-    void resetData(Data&& d);
-
-private:
-    // write lock through copy on write
-    void cowWriteLock();
+    static bool deep();
+    bool detached() const;
+    void detachWith(Data data);
+    void checkedDetachTake(Member& other);
+    void checkedDetachTake(NewObject& other);
 
     Data m_data;
 
@@ -143,8 +115,9 @@ public:
 
     Write w() { return Write(*this); };
 
-    const T* operator->() const { return reinterpret_cast<const T*>(data()); }
-    const T& operator*() const { return *reinterpret_cast<const T*>(data()); }
+    const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
+    const T* operator->() const { return get(); }
+    const T& operator*() const { return *get(); }
 
     std::shared_ptr<const T> payload() const { return std::reinterpret_pointer_cast<const T>(m_data.payload); }
 };
@@ -155,42 +128,61 @@ class Member : public impl::Member
 public:
     template <typename... Args>
     Member(Args&&... args)
-        : impl::Member(impl::Data::construct<T>(std::forward<Args>(args)...))
-    {}
-
-    Member(const Member& other) = default;
-    Member& operator=(const Member& other) = default;
-    Member(Member&& other) = default;
-    Member& operator=(Member&& other) = default;
-
-    explicit Member(NewObject<T>&& obj) noexcept
-        : impl::Member(std::move(obj))
-    {}
-
-    const T* operator->() const { return reinterpret_cast<const T*>(data()); }
-    const T& operator*() const { return *reinterpret_cast<const T*>(data()); }
-
-    T* operator->() { return reinterpret_cast<T*>(cowData()); }
-    T& operator*() { return *reinterpret_cast<T*>(cowData()); }
-
-    Member& operator=(const T& t)
     {
-        resetData(impl::Data::construct<T>(t));
+        m_data = impl::Data::construct<T>(std::forward<Args>(args)...);
+    }
+
+    Member(const Member& other)
+    {
+        if (deep()) m_data = impl::Data::construct<T>(other.get());
+        else m_data = other.m_data;
+    }
+
+    Member& operator=(const Member& other)
+    {
+        if (detached()) *qget() = *other.get();
+        else detachWith(impl::Data::construct<T>(other.get()));
+    }
+
+    Member(Member&& other) { takeData(other); }
+    Member& operator=(Member&& other) { checkedDetachTake(other); return *this; }
+
+    Member(NewObject<T>&& obj) noexcept { takeData(obj); }
+    Member& operator=(NewObject<T>&& obj) { checkedDetachTake(obj); return *this; }
+
+    template <typename U>
+    Member& operator=(const U& u)
+    {
+        if (detached()) *qget() = u;
+        else detachWith(impl::Data::construct<T>(u));
         return *this;
     }
 
-    Member& operator=(T&& t)
+    template <typename U>
+    Member& operator=(U&& u)
     {
-        resetData(impl::Data::construct<T>(std::move(t)));
+        if (detached()) *qget() = std::move(u);
+        else detachWith(impl::Data::construct<T>(std::move(u)));
         return *this;
     }
 
-    Member& operator=(NewObject<T>&& obj)
-    {
-        resetData(std::move(obj.m_data));
-    }
+    const Member& r() const { return *this; }
+    const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
+    const T* operator->() const { return get(); }
+    const T& operator*() const { return *get(); }
 
-    std::shared_ptr<const T> payload() const { return std::reinterpret_pointer_cast<const T>(rawData().payload); }
+    T* get()
+    {
+        if (!detached()) detachWith(impl::Data::construct<T>(*r().get()));
+        return qget();
+    }
+    T* operator->() { return get(); }
+    T& operator*() { return *get(); }
+
+    std::shared_ptr<const T> payload() const { return std::reinterpret_pointer_cast<const T>(m_data.payload); }
+
+private:
+    T* qget() { return reinterpret_cast<T*>(m_data.qdata); }
 };
 
 } // namespace kuzco
