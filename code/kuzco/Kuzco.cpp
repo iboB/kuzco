@@ -100,7 +100,7 @@ void Member::detachWith(Data data)
 {
     m_data = std::move(data);
     auto& top = ctx.topContext();
-    assert(top.type == ContextType::New);
+    assert(top.type == ContextType::Transaction);
     auto root = reinterpret_cast<RootObject*>(top.object);
     return root->openEdit(m_data);
 }
@@ -128,12 +128,10 @@ RootObject::RootObject(NewObject&& obj) noexcept
     m_detachedRoot = m_root.m_data.payload;
 }
 
-void* RootObject::beginTransaction()
+void RootObject::beginTransaction()
 {
     m_transactionMutex.lock();
     ctx.pushContext(this);
-    //m_root.cowWriteLock();
-    return m_root.m_data.payload.get();
 }
 
 void RootObject::endTransaction()

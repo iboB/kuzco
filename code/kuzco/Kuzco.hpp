@@ -3,9 +3,13 @@
 #include <memory>
 #include <vector>
 #include <mutex>
+#include <type_traits>
 
 namespace kuzco
 {
+template <typename T>
+class RootObject;
+
 namespace impl
 {
 
@@ -81,19 +85,23 @@ protected:
     Data m_data;
 
     friend class RootObject;
+
+    template <typename T>
+    friend class kuzco::RootObject;
 };
 
 class RootObject
 {
-public:
-    // safe even during a transaction
-    Data::Payload detachedRoot() const;
-
 protected:
     RootObject(NewObject&& obj) noexcept;
 
-    void* beginTransaction(); // returns a non-const pointer to the underlying member data
+    void beginTransaction();
     void endTransaction();
+
+    // safe even during a transaction
+    Data::Payload detachedRoot() const;
+
+    Member m_root;
 
 private:
     friend class Member;
@@ -105,7 +113,6 @@ private:
     void openEdit(const Data& d);
     std::vector<Data> m_openEdits;
 
-    Member m_root;
     Data::Payload m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
 };
 
@@ -142,7 +149,7 @@ template <typename T>
 class Member : public impl::Member
 {
 public:
-    template <typename... Args>
+    template <typename... Args, std::enable_if_t<std::is_constructible_v<T, Args...>, int> = 0>
     Member(Args&&... args)
     {
         m_data = impl::Data::construct<T>(std::forward<Args>(args)...);
@@ -158,27 +165,20 @@ public:
     {
         if (detached()) *qget() = *other.get();
         else detachWith(impl::Data::construct<T>(*other.get()));
+        return *this;
     }
 
-    Member(Member&& other) { takeData(other); }
+    Member(Member&& other) noexcept { takeData(other); }
     Member& operator=(Member&& other) { checkedDetachTake(other); return *this; }
 
     Member(NewObject<T>&& obj) noexcept { takeData(obj); }
     Member& operator=(NewObject<T>&& obj) { checkedDetachTake(obj); return *this; }
 
-    template <typename U>
-    Member& operator=(const U& u)
-    {
-        if (detached()) *qget() = u;
-        else detachWith(impl::Data::construct<T>(u));
-        return *this;
-    }
-
-    template <typename U>
+    template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Member& operator=(U&& u)
     {
-        if (detached()) *qget() = std::move(u);
-        else detachWith(impl::Data::construct<T>(std::move(u)));
+        if (detached()) *qget() = std::forward<U>(u);
+        else detachWith(impl::Data::construct<T>(std::forward<U>(u)));
         return *this;
     }
 
@@ -199,6 +199,30 @@ public:
 
 private:
     T* qget() { return reinterpret_cast<T*>(m_data.qdata); }
+};
+
+template <typename T>
+class RootObject : public impl::RootObject
+{
+public:
+    RootObject(NewObject<T>&& obj) : impl::RootObject(std::move(obj)) {}
+
+    RootObject(const RootObject&) = delete;
+    RootObject& operator=(const RootObject&) = delete;
+    RootObject(RootObject&&) = delete;
+    RootObject& operator=(RootObject&&) = delete;
+
+    // returns a non-const pointer to the underlying data
+    T* beginTransaction()
+    {
+        impl::RootObject::beginTransaction();
+        m_root.detachWith(impl::Data::construct<T>(*reinterpret_cast<const T*>(m_root.m_data.qdata)));
+        return reinterpret_cast<T*>(m_root.m_data.qdata);
+    }
+
+    void endTransaction() { impl::RootObject::endTransaction(); }
+
+    std::shared_ptr<const T> detachedPayload() const { return std::reinterpret_pointer_cast<const T>(detachedRoot()); }
 };
 
 } // namespace kuzco

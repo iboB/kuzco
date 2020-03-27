@@ -247,10 +247,12 @@ TEST_CASE("New object with members")
     CHECK(LC<PersonData>::ma == 0);
 }
 
-struct Boss
+using Blob = std::unique_ptr<std::vector<int>>;
+
+struct Boss : public LC<Boss>
 {
     Member<PersonData> data;
-    //Member<std::unique_ptr<std::vector<int>>> blob;
+    //Member<Blob> blob;
 };
 
 struct Company
@@ -262,6 +264,80 @@ struct Company
 
 TEST_CASE("Variable objects")
 {
+    clearAllCounters();
     NewObject<Company> acme;
+    acme.w()->staff.resize(2);
+
+    CHECK(LC<Employee>::alive == 2);
+    CHECK(LC<Employee>::dc == 2);
+    CHECK(LC<Employee>::cc == 0);
+    CHECK(LC<Employee>::mc == 0);
+    CHECK(LC<Employee>::ca == 0);
+    CHECK(LC<Employee>::ma == 0);
+
     acme.w()->staff.resize(10);
+
+    CHECK(LC<Employee>::alive == 10);
+    CHECK(LC<Employee>::dc == 10);
+    CHECK(LC<Employee>::cc == 0);
+    CHECK(LC<Employee>::mc == 0);
+    CHECK(LC<Employee>::ca == 0);
+    CHECK(LC<Employee>::ma == 0);
+
+    acme.w()->cto = NewObject<Boss>();
+
+    CHECK(LC<Boss>::alive == 2);
+    CHECK(LC<Boss>::dc == 2);
+    CHECK(LC<Boss>::cc == 0);
+    CHECK(LC<Boss>::mc == 0);
+    CHECK(LC<Boss>::ca == 0);
+    CHECK(LC<Boss>::ma == 0);
+
+    NewObject<Company> ms;
+    acme.w()->staff = ms->staff;
+
+    //NewObject<Boss> ceo;
+    //ceo.w()->data->name = "John";
+    //ceo.w()->blob = NewObject<Blob>(std::make_unique<std::vector<int>>(10));
+    //acme.w()->ceo = std::move(ceo);
+}
+
+TEST_CASE("Basic state")
+{
+    clearAllCounters();
+    RootObject root = NewObject<Pair>{};
+
+    auto pre = root.detachedPayload();
+
+    CHECK(LC<Pair>::alive == 1);
+    CHECK(LC<Pair>::dc == 1);
+    CHECK(LC<Pair>::cc == 0);
+    CHECK(LC<Pair>::mc == 0);
+    CHECK(LC<Pair>::ca == 0);
+    CHECK(LC<Pair>::ma == 0);
+
+    auto mod = root.beginTransaction();
+    mod->a->data->name = "Alice";
+    auto tempapl = mod->a.payload();
+    auto tempadatapl = mod->a->data.payload();
+    mod->a->data->age = 104;
+    root.endTransaction();
+
+    auto post = root.detachedPayload();
+
+    CHECK(pre != post);
+    CHECK(pre->b.payload() == post->b.payload());
+    CHECK(pre->a.payload() != post->a.payload());
+    CHECK(tempapl == post->a.payload());
+    CHECK(tempadatapl == post->a->data.payload());
+}
+
+TEST_CASE("Complex state")
+{
+    clearAllCounters();
+    RootObject root = NewObject<Company>{};
+
+    auto mod = root.beginTransaction();
+    mod->staff.resize(5);
+    root.endTransaction();
 }
