@@ -21,6 +21,8 @@ if(dev_mode)
     include(./dev.cmake)
 endif()
 
+find_package(Threads REQUIRED)
+
 add_subdirectory(code)
 
 if(KUZCO_BUILD_SCRATCH)
