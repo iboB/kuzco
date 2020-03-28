@@ -167,6 +167,8 @@ public:
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
 
+    std::shared_ptr<const T> payload() const { return m_payload; }
+
 private:
     DetachedObject(std::shared_ptr<const T> payload)
         : m_qdata(payload.get())

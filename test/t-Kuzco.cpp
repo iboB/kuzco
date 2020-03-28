@@ -60,9 +60,13 @@ struct LC
 
 template <typename T> int LC<T>::alive = 0;
 
-std::vector<void(*)()> allCountersClearFuncs;
+std::vector<void(*)()>& allCountersClearFuncs()
+{
+    static std::vector<void(*)()> vec;
+    return vec;
+}
 template <typename T> int LC<T>::dc = []() -> int {
-    allCountersClearFuncs.emplace_back([]() {
+    allCountersClearFuncs().emplace_back([]() {
         LC<T>::alive = 0;
         LC<T>::dc = 0;
         LC<T>::cc = 0;
@@ -79,7 +83,7 @@ template <typename T> int LC<T>::ma = 0;
 
 void clearAllCounters()
 {
-    for(auto& c : allCountersClearFuncs) c();
+    for(auto& c : allCountersClearFuncs()) c();
 }
 
 struct PersonData : public LC<PersonData>
