@@ -16,6 +16,7 @@ public:
     {
         ContextType type;
         void* object;
+        static const ContextStackElement empty;
     };
     void pushContext(NewObject* obj)
     {
@@ -27,17 +28,24 @@ public:
     }
     const ContextStackElement& topContext()
     {
+        // normally we only want object creation to happen through new objects
+        // however there is no good way of enforcing this with compilation errors
+        // so we have this assert to warn us if we break the rule, but in case something
+        // bad happens in release, we have a fallback
         assert(!contextStack.empty());
+        // try to rescue the situation anyway
+        if (contextStack.empty()) return ContextStackElement::empty;
         return contextStack.back();
     }
-    void popContext(void* obj) // this argument here is for debugging purposes only
+    void popContext([[maybe_unused]] void* obj) // this argument here is for debugging purposes only
     {
         assert(contextStack.back().object == obj);
         contextStack.pop_back();
     }
     std::vector<ContextStackElement> contextStack;
-};
 
+};
+const DataAccessContext::ContextStackElement DataAccessContext::ContextStackElement::empty = {ContextType::New, nullptr};
 thread_local DataAccessContext ctx;
 } // anonymous namespace
 

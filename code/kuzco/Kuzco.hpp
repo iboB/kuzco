@@ -21,6 +21,8 @@ struct Data
     void* qdata = nullptr; // quick access pointer to save dereferencs of the internal shared pointer
     Payload payload;
 
+    // not guarding this through enable_if
+    // all calls to this function should be guarded from the callers
     template <typename T, typename... Args>
     static Data construct(Args&&... args)
     {
@@ -60,6 +62,8 @@ protected:
     Member();
     ~Member();
 
+    // for move constructors
+    // take the data from another object and invalidate it
     void takeData(Member& other);
     void takeData(NewObject& other);
 
@@ -109,8 +113,11 @@ private:
     std::mutex m_transactionMutex;
 
     // check if the data is in the open edits
+    // we use this to save multiple clones of the same object during a transaction
     bool isOpenEdit(const Data& d) const;
     void openEdit(const Data& d);
+
+    // you can know that no outsider has refs to these objects during a transaction
     std::vector<Data> m_openEdits;
 
     Data::Payload m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
@@ -136,6 +143,7 @@ public:
         ~Write() { m_object.closeDataEdit(); }
     };
 
+    // explicit write scope
     Write w() { return Write(*this); };
 
     const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
@@ -148,6 +156,9 @@ public:
 template <typename T>
 class Member;
 
+// convenience class which wraps a detached immutable object
+// never null
+// has quick access to underlying data
 template <typename T>
 class DetachedObject
 {
@@ -262,7 +273,7 @@ public:
     std::shared_ptr<const T> detachedPayload() const { return std::reinterpret_pointer_cast<const T>(detachedRoot()); }
 };
 
-// comparisons
+// shallow comparisons
 template <typename T>
 bool operator==(const DetachedObject<T>& a, const DetachedObject<T>& b)
 {
