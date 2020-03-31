@@ -163,6 +163,11 @@ template <typename T>
 class DetachedObject
 {
 public:
+    DetachedObject(std::shared_ptr<const T> payload)
+        : m_qdata(payload.get())
+        , m_payload(std::move(payload))
+    {}
+
     const T* get() const { return m_qdata; }
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
@@ -170,13 +175,6 @@ public:
     std::shared_ptr<const T> payload() const { return m_payload; }
 
 private:
-    DetachedObject(std::shared_ptr<const T> payload)
-        : m_qdata(payload.get())
-        , m_payload(std::move(payload))
-    {}
-    friend class RootObject<T>;
-    friend class Member<T>;
-
     const T* m_qdata;
     std::shared_ptr<const T> m_payload;
 };
