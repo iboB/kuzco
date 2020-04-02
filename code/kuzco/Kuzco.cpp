@@ -142,12 +142,20 @@ void RootObject::beginTransaction()
     ctx.pushContext(this);
 }
 
-void RootObject::endTransaction()
+void RootObject::endTransaction(bool writeToState)
 {
     m_openEdits.clear();
     ctx.popContext(this);
     // update handle
-    std::atomic_store_explicit(&m_detachedRoot, m_root.m_data.payload, std::memory_order_relaxed);
+    if (writeToState) {
+        // detach
+        std::atomic_store_explicit(&m_detachedRoot, m_root.m_data.payload, std::memory_order_relaxed);
+    }
+    else {
+        // abort transaction
+        m_root.m_data.payload = m_detachedRoot;
+        m_root.m_data.qdata = m_root.m_data.payload.get();
+    }
     m_transactionMutex.unlock();
 }
 
