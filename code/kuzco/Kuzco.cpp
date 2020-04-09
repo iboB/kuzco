@@ -142,12 +142,12 @@ void RootObject::beginTransaction()
     ctx.pushContext(this);
 }
 
-void RootObject::endTransaction(bool writeToState)
+void RootObject::endTransaction(bool store)
 {
     m_openEdits.clear();
     ctx.popContext(this);
     // update handle
-    if (writeToState) {
+    if (store) {
         // detach
         std::atomic_store_explicit(&m_detachedRoot, m_root.m_data.payload, std::memory_order_relaxed);
     }

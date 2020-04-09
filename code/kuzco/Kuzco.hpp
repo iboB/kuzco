@@ -100,7 +100,7 @@ protected:
     RootObject(NewObject&& obj) noexcept;
 
     void beginTransaction();
-    void endTransaction(bool writeToState);
+    void endTransaction(bool store);
 
     // safe even during a transaction
     Data::Payload detachedRoot() const;
@@ -267,7 +267,7 @@ public:
         return reinterpret_cast<T*>(m_root.m_data.qdata);
     }
 
-    void endTransaction(bool writeToState = true) { impl::RootObject::endTransaction(writeToState); }
+    void endTransaction(bool store = true) { impl::RootObject::endTransaction(store); }
 
     DetachedObject<T> detach() const { return DetachedObject(detachedPayload()); }
     std::shared_ptr<const T> detachedPayload() const { return std::reinterpret_pointer_cast<const T>(detachedRoot()); }
