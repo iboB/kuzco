@@ -157,7 +157,7 @@ public:
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
 
-    std::shared_ptr<const T> payload() const { return std::reinterpret_pointer_cast<const T>(m_data.payload); }
+    std::shared_ptr<const T> payload() const { return std::static_pointer_cast<const T>(m_data.payload); }
 };
 
 template <typename T>
@@ -249,7 +249,7 @@ public:
     T& operator*() { return *get(); }
 
     DetachedObject<T> detach() const { return DetachedObject(payload()); }
-    std::shared_ptr<const T> payload() const { return std::reinterpret_pointer_cast<const T>(m_data.payload); }
+    std::shared_ptr<const T> payload() const { return std::static_pointer_cast<const T>(m_data.payload); }
 
 private:
     T* qget() { return reinterpret_cast<T*>(m_data.qdata); }
@@ -277,7 +277,7 @@ public:
     void endTransaction(bool store = true) { impl::RootObject::endTransaction(store); }
 
     DetachedObject<T> detach() const { return DetachedObject(detachedPayload()); }
-    std::shared_ptr<const T> detachedPayload() const { return std::reinterpret_pointer_cast<const T>(detachedRoot()); }
+    std::shared_ptr<const T> detachedPayload() const { return std::static_pointer_cast<const T>(detachedRoot()); }
 };
 
 // shallow comparisons
