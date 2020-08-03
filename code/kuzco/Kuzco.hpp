@@ -7,6 +7,8 @@
 //
 #pragma once
 
+#include "API.h"
+
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -43,7 +45,7 @@ struct Data
 class RootObject;
 
 // base class for new objects
-class NewObject
+class KUZCO_API NewObject
 {
 protected:
     NewObject();
@@ -63,7 +65,7 @@ protected:
 };
 
 // base class for members
-class Member
+class KUZCO_API Member
 {
 protected:
     Member();
@@ -101,7 +103,7 @@ protected:
     friend class kuzco::RootObject;
 };
 
-class RootObject
+class KUZCO_API RootObject
 {
 protected:
     RootObject(NewObject&& obj) noexcept;

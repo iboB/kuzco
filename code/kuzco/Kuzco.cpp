@@ -5,6 +5,7 @@
 // See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/MIT
 //
+#define BUILDING_KUZCO 1
 #include "Kuzco.hpp"
 
 #include <cassert>
