@@ -81,19 +81,20 @@ protected:
     // and shallow when we're working with state objects within a transaction
     static bool deep();
 
-    // if the we're working on new objects we're detached
-    // if we're inisde a transaction a search is performed in order to save copies
-    bool detached() const;
+    // "replaced" checks whether the data of this object is safe to edit
+    // if the we're working on new objects, we're "replaced" since no one else has a pointer to it
+    // if we're inisde a transaction, we check whether this same transaction has replaced the object already
+    bool replaced() const;
 
-    // deaches the object with a new data
-    // only valid if not detached
-    void detachWith(Data data);
+    // replaces the object's data with new data
+    // only valid in a trasaction and if not replaced already
+    void replaceWith(Data data);
 
-    // perform the detached check
-    // detach if needed
+    // perform the replaced check
+    // create new data if needed
     // reassign data from other source
-    void checkedDetachTake(Member& other);
-    void checkedDetachTake(NewObject& other);
+    void checkedReplace(Member& other);
+    void checkedReplace(NewObject& other);
 
     Data m_data;
 
@@ -218,22 +219,22 @@ public:
     // see comments in copy constructor on why
     Member& operator=(const Member& other) = delete;
     //{
-    //    if (detached()) *qget() = *other.get();
-    //    else detachWith(impl::Data::construct<T>(*other.get()));
+    //    if (replaced()) *qget() = *other.get();
+    //    else replaceWith(impl::Data::construct<T>(*other.get()));
     //    return *this;
     //}
 
     Member(Member&& other) noexcept { takeData(other); }
-    Member& operator=(Member&& other) { checkedDetachTake(other); return *this; }
+    Member& operator=(Member&& other) { checkedReplace(other); return *this; }
 
     Member(NewObject<T>&& obj) noexcept { takeData(obj); }
-    Member& operator=(NewObject<T>&& obj) { checkedDetachTake(obj); return *this; }
+    Member& operator=(NewObject<T>&& obj) { checkedReplace(obj); return *this; }
 
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Member& operator=(U&& u)
     {
-        if (detached()) *qget() = std::forward<U>(u);
-        else detachWith(impl::Data::construct<T>(std::forward<U>(u)));
+        if (replaced()) *qget() = std::forward<U>(u);
+        else replaceWith(impl::Data::construct<T>(std::forward<U>(u)));
         return *this;
     }
 
@@ -244,7 +245,7 @@ public:
 
     T* get()
     {
-        if (!detached()) detachWith(impl::Data::construct<T>(*r().get()));
+        if (!replaced()) replaceWith(impl::Data::construct<T>(*r().get()));
         return qget();
     }
     T* operator->() { return get(); }
@@ -272,7 +273,7 @@ public:
     T* beginTransaction()
     {
         impl::RootObject::beginTransaction();
-        m_root.detachWith(impl::Data::construct<T>(*reinterpret_cast<const T*>(m_root.m_data.qdata)));
+        m_root.replaceWith(impl::Data::construct<T>(*reinterpret_cast<const T*>(m_root.m_data.qdata)));
         return reinterpret_cast<T*>(m_root.m_data.qdata);
     }
 

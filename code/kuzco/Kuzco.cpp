@@ -104,7 +104,7 @@ bool Member::deep()
     return ctx.topContext().type == ContextType::New;
 }
 
-bool Member::detached() const
+bool Member::replaced() const
 {
     auto& top = ctx.topContext();
     if (top.type == ContextType::New) return true;
@@ -112,7 +112,7 @@ bool Member::detached() const
     return root->isOpenEdit(m_data);
 }
 
-void Member::detachWith(Data data)
+void Member::replaceWith(Data data)
 {
     m_data = std::move(data);
     auto& top = ctx.topContext();
@@ -121,17 +121,17 @@ void Member::detachWith(Data data)
     return root->openEdit(m_data);
 }
 
-void Member::checkedDetachTake(Member& other)
+void Member::checkedReplace(Member& other)
 {
-    if (detached()) m_data = std::move(other.m_data);
-    else detachWith(std::move(other.m_data));
+    if (replaced()) m_data = std::move(other.m_data);
+    else replaceWith(std::move(other.m_data));
     other.m_data = {};
 }
 
-void Member::checkedDetachTake(NewObject& other)
+void Member::checkedReplace(NewObject& other)
 {
-    if (detached()) m_data = std::move(other.m_data);
-    else detachWith(std::move(other.m_data));
+    if (replaced()) m_data = std::move(other.m_data);
+    else replaceWith(std::move(other.m_data));
     other.m_data = {};
 }
 
