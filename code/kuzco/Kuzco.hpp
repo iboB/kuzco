@@ -81,16 +81,16 @@ protected:
     // and shallow when we're working with state objects within a transaction
     static bool deep();
 
-    // "replaced" checks whether the data of this object is safe to edit
-    // if the we're working on new objects, we're "replaced" since no one else has a pointer to it
+    // returns if the object is unique ant its data is safe to edit in place
+    // if the we're working on new objects, we're unique since no one else has a pointer to it
     // if we're inisde a transaction, we check whether this same transaction has replaced the object already
-    bool replaced() const;
+    bool unique() const;
 
     // replaces the object's data with new data
-    // only valid in a trasaction and if not replaced already
+    // only valid in a trasaction and if not unique
     void replaceWith(Data data);
 
-    // perform the replaced check
+    // perform the unique check
     // create new data if needed
     // reassign data from other source
     void checkedReplace(Member& other);
@@ -219,7 +219,7 @@ public:
     // see comments in copy constructor on why
     Member& operator=(const Member& other) = delete;
     //{
-    //    if (replaced()) *qget() = *other.get();
+    //    if (unique()) *qget() = *other.get();
     //    else replaceWith(impl::Data::construct<T>(*other.get()));
     //    return *this;
     //}
@@ -233,7 +233,7 @@ public:
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Member& operator=(U&& u)
     {
-        if (replaced()) *qget() = std::forward<U>(u);
+        if (unique()) *qget() = std::forward<U>(u);
         else replaceWith(impl::Data::construct<T>(std::forward<U>(u)));
         return *this;
     }
@@ -245,7 +245,7 @@ public:
 
     T* get()
     {
-        if (!replaced()) replaceWith(impl::Data::construct<T>(*r().get()));
+        if (!unique()) replaceWith(impl::Data::construct<T>(*r().get()));
         return qget();
     }
     T* operator->() { return get(); }

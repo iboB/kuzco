@@ -104,7 +104,7 @@ bool Member::deep()
     return ctx.topContext().type == ContextType::New;
 }
 
-bool Member::replaced() const
+bool Member::unique() const
 {
     auto& top = ctx.topContext();
     if (top.type == ContextType::New) return true;
@@ -123,14 +123,14 @@ void Member::replaceWith(Data data)
 
 void Member::checkedReplace(Member& other)
 {
-    if (replaced()) m_data = std::move(other.m_data);
+    if (unique()) m_data = std::move(other.m_data);
     else replaceWith(std::move(other.m_data));
     other.m_data = {};
 }
 
 void Member::checkedReplace(NewObject& other)
 {
-    if (replaced()) m_data = std::move(other.m_data);
+    if (unique()) m_data = std::move(other.m_data);
     else replaceWith(std::move(other.m_data));
     other.m_data = {};
 }
