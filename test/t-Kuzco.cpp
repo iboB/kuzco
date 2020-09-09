@@ -124,7 +124,7 @@ struct Boss : public LC<Boss>
     Member<Blob> blob;
 };
 
-struct Company
+struct Company : public LC<Company>
 {
     std::vector<Member<Employee>> staff;
     Member<Boss> ceo;
@@ -348,10 +348,23 @@ TEST_CASE("Complex state")
 {
     clearAllCounters();
     RootObject root = NewObject<Company>{};
+    CHECK(LC<Company>::alive == 1);
+    CHECK(LC<Company>::dc == 1);
+    CHECK(LC<Company>::cc == 0);
+    CHECK(LC<Company>::mc == 0);
+    CHECK(LC<Company>::ca == 0);
+    CHECK(LC<Company>::ma == 0);
 
     auto mod = root.beginTransaction();
     mod->staff.resize(5);
     root.endTransaction();
+
+    CHECK(LC<Company>::alive == 1);
+    CHECK(LC<Company>::dc == 1);
+    CHECK(LC<Company>::cc == 1);
+    CHECK(LC<Company>::mc == 0);
+    CHECK(LC<Company>::ca == 0);
+    CHECK(LC<Company>::ma == 0);
 
     auto d = root.detach();
     CHECK(mod->staff.size() == 5);
@@ -362,4 +375,22 @@ TEST_CASE("Complex state")
     CHECK(LC<Employee>::mc == 0);
     CHECK(LC<Employee>::ca == 0);
     CHECK(LC<Employee>::ma == 0);
+
+    mod = root.beginTransaction();
+    mod->staff.emplace(mod->staff.begin());
+    root.endTransaction();
+
+    CHECK(LC<Employee>::alive == 6);
+    CHECK(LC<Employee>::dc == 6);
+    CHECK(LC<Employee>::cc == 0);
+    CHECK(LC<Employee>::mc == 0);
+    CHECK(LC<Employee>::ca == 0);
+    CHECK(LC<Employee>::ma == 0);
+
+    CHECK(LC<Company>::alive == 2); // one in root, one in d
+    CHECK(LC<Company>::dc == 1);
+    CHECK(LC<Company>::cc == 2);
+    CHECK(LC<Company>::mc == 0);
+    CHECK(LC<Company>::ca == 0);
+    CHECK(LC<Company>::ma == 0);
 }
