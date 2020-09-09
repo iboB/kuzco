@@ -115,16 +115,16 @@ struct SingleWriterTest
 TEST_CASE("Single writer")
 {
     NewObject<Company> acme;
-    acme.w()->name = "ACME";
-    acme.w()->ceo->data = PersonData("Jane", 55);
-    acme.w()->ceo->department = "Management";
-    acme.w()->ceo->salary = 10;
+    acme->name = "ACME";
+    acme->ceo->data = PersonData("Jane", 55);
+    acme->ceo->department = "Management";
+    acme->ceo->salary = 10;
 
-    acme.w()->staff.emplace_back(Employee{ {"Alice", 20}, "dev", 45 });
-    acme.w()->staff.emplace_back(Employee{ {"Anne", 44}, "acc", 35 });
-    acme.w()->staff.emplace_back(Employee{ {"Adam", 34}, "dev", 55 });
-    acme.w()->staff.emplace_back(Employee{ {"Andrew", 30}, "dev", 25 });
-    acme.w()->staff.emplace_back(Employee{ {"Albert", 30}, "mar", 35 });
+    acme->staff.emplace_back(Employee{ {"Alice", 20}, "dev", 45 });
+    acme->staff.emplace_back(Employee{ {"Anne", 44}, "acc", 35 });
+    acme->staff.emplace_back(Employee{ {"Adam", 34}, "dev", 55 });
+    acme->staff.emplace_back(Employee{ {"Andrew", 30}, "dev", 25 });
+    acme->staff.emplace_back(Employee{ {"Albert", 30}, "mar", 35 });
 
     SingleWriterTest test;
 

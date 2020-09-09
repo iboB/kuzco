@@ -14,72 +14,8 @@ namespace kuzco
 {
 namespace impl
 {
-namespace
-{
-enum ContextType { New, Transaction };
-class DataAccessContext
-{
-public:
-    struct ContextStackElement
-    {
-        ContextType type;
-        void* object;
-        static const ContextStackElement empty;
-    };
-    void pushContext(NewObject* obj)
-    {
-        contextStack.push_back({ ContextType::New, obj });
-    }
-    void pushContext(RootObject* obj)
-    {
-        contextStack.push_back({ ContextType::Transaction, obj });
-    }
-    const ContextStackElement& topContext()
-    {
-        // normally we only want object creation to happen through new objects
-        // however there is no good way of enforcing this with compilation errors
-        // so we have this assert to warn us if we break the rule, but in case something
-        // bad happens in release, we have a fallback
-        assert(!contextStack.empty());
-        // try to rescue the situation anyway
-        if (contextStack.empty()) return ContextStackElement::empty;
-        return contextStack.back();
-    }
-    void popContext([[maybe_unused]] void* obj) // this argument here is for debugging purposes only
-    {
-        assert(contextStack.back().object == obj);
-        contextStack.pop_back();
-    }
-    std::vector<ContextStackElement> contextStack;
-
-};
-const DataAccessContext::ContextStackElement DataAccessContext::ContextStackElement::empty = {ContextType::New, nullptr};
-thread_local DataAccessContext ctx;
-} // anonymous namespace
-
 ////////////////////////////////////////////////////////////////////////////////
 // NewObject
-
-NewObject::NewObject()
-{
-    openDataEdit();
-}
-
-void NewObject::setData(Data d)
-{
-    m_data = d;
-    closeDataEdit();
-}
-
-void NewObject::openDataEdit()
-{
-    ctx.pushContext(this);
-}
-
-void NewObject::closeDataEdit()
-{
-    ctx.popContext(this);
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Member
@@ -91,34 +27,20 @@ void Member::takeData(Member& other)
 {
     m_data = std::move(other.m_data);
     other.m_data = {};
+    m_unique = other.m_unique; // copy uniqueness
 }
 
 void Member::takeData(NewObject& other)
 {
     m_data = std::move(other.m_data);
     other.m_data = {};
-}
-
-bool Member::deep()
-{
-    return ctx.topContext().type == ContextType::New;
-}
-
-bool Member::unique() const
-{
-    auto& top = ctx.topContext();
-    if (top.type == ContextType::New) return true;
-    auto root = reinterpret_cast<RootObject*>(top.object);
-    return root->isOpenEdit(m_data);
+    // unique implicitly this is only called in constructors
 }
 
 void Member::replaceWith(Data data)
 {
     m_data = std::move(data);
-    auto& top = ctx.topContext();
-    assert(top.type == ContextType::Transaction);
-    auto root = reinterpret_cast<RootObject*>(top.object);
-    return root->openEdit(m_data);
+    m_unique = true; // we're replaced so we're once more unique
 }
 
 void Member::checkedReplace(Member& other)
@@ -147,13 +69,10 @@ RootObject::RootObject(NewObject&& obj) noexcept
 void RootObject::beginTransaction()
 {
     m_transactionMutex.lock();
-    ctx.pushContext(this);
 }
 
 void RootObject::endTransaction(bool store)
 {
-    m_openEdits.clear();
-    ctx.popContext(this);
     // update handle
     if (store) {
         // detach
@@ -170,20 +89,6 @@ void RootObject::endTransaction(bool store)
 Data::Payload RootObject::detachedRoot() const
 {
     return std::atomic_load_explicit(&m_detachedRoot, std::memory_order_relaxed);
-}
-
-bool RootObject::isOpenEdit(const Data& d) const
-{
-    for (auto& o : m_openEdits)
-    {
-        if (o.payload == d.payload) return true;
-    }
-    return false;
-}
-
-void RootObject::openEdit(const Data& d)
-{
-    m_openEdits.emplace_back(d);
 }
 
 } // namespace impl

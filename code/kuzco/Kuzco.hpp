@@ -48,17 +48,6 @@ class RootObject;
 class KUZCO_API NewObject
 {
 protected:
-    NewObject();
-
-    // we open and close each access to the new object
-    // that's why we need a set function which is separate from the constructor
-    // the child class will invoke the appropriate constrcutor in its body
-    void setData(Data d);
-
-    // explicit functions to call when writing to data
-    void openDataEdit();
-    void closeDataEdit();
-
     Data m_data;
 
     friend class Member;
@@ -71,20 +60,27 @@ protected:
     Member();
     ~Member();
 
+    Data m_data;
+
+    // returns if the object is unique and its data is safe to edit in place
+    // if the we're working on new objects, we're unique since no one else has a pointer to it
+    // if we're inisde a transaction, we check whether this same transaction has replaced the object already
+    bool unique() const { return m_unique; }
+
+    // unique is different from (use_count == 1)
+    // for NewObject and in a transaction you could get the payload of a unique object
+    // this will increment the use count, but unique will still be true
+    // you think of unique as "unique in the current thread"
+    // unique also means that we can replace the current data with another (not only it's payload)
+    // as we do when we move-assign objects
+
+    // it's populated in the constructors appropriately
+    bool m_unique = true; // an object is unique when intiially constructed
+
     // for move constructors
     // take the data from another object and invalidate it
     void takeData(Member& other);
     void takeData(NewObject& other);
-
-    // check if we're in a deep or shallow copy state
-    // we're deep when working with new objects
-    // and shallow when we're working with state objects within a transaction
-    static bool deep();
-
-    // returns if the object is unique ant its data is safe to edit in place
-    // if the we're working on new objects, we're unique since no one else has a pointer to it
-    // if we're inisde a transaction, we check whether this same transaction has replaced the object already
-    bool unique() const;
 
     // replaces the object's data with new data
     // only valid in a trasaction and if not unique
@@ -96,7 +92,7 @@ protected:
     void checkedReplace(Member& other);
     void checkedReplace(NewObject& other);
 
-    Data m_data;
+
 
     friend class RootObject;
 
@@ -122,14 +118,6 @@ private:
 
     std::mutex m_transactionMutex;
 
-    // check if the data is in the open edits
-    // we use this to save multiple clones of the same object during a transaction
-    bool isOpenEdit(const Data& d) const;
-    void openEdit(const Data& d);
-
-    // you can know that no outsider has refs to these objects during a transaction
-    std::vector<Data> m_openEdits;
-
     Data::Payload m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
 };
 
@@ -142,19 +130,11 @@ public:
     template <typename... Args>
     NewObject(Args&&... args)
     {
-        setData(impl::Data::construct<T>(std::forward<Args>(args)...));
+        m_data = impl::Data::construct<T>(std::forward<Args>(args)...);
     }
 
-    struct Write
-    {
-        Write(NewObject& o) : m_object(o) { o.openDataEdit(); }
-        NewObject& m_object;
-        T* operator->() { return reinterpret_cast<T*>(m_object.m_data.qdata); }
-        ~Write() { m_object.closeDataEdit(); }
-    };
-
-    // explicit write scope
-    Write w() { return Write(*this); };
+    T* get() { return reinterpret_cast<T*>(m_data.qdata); }
+    T* operator->() { return get();  }
 
     const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
     const T* operator->() const { return get(); }
@@ -197,6 +177,7 @@ public:
     Member(Args&&... args)
     {
         m_data = impl::Data::construct<T>(std::forward<Args>(args)...);
+        // T construction. Object is unique implicitly
     }
 
     Member(const Member& other)
@@ -205,14 +186,19 @@ public:
         // the way to add members to the state should always happen through new objects
         // or value constructors
         // it should be impossible to add a deep object with a value constructor as you can't construct it without a NewObject wrapper
-        // so here we can safely assume that the source is ether a COW (must be shallow)
-        // or an interstate exchange - again should be shallow and detachable
+        // so here we can safely assume that the source is either a COW within a transaction (must be shallow)
+        // or an implicit detach (copy of an already detached member, or one from a new object)
+        // or an interstate exchange (detached member copied from one root onto another in another's transaction - shallow again)
         // if we absolutely need partial deep exchanges, we can uncomment the following two lines and the ones in the copy assign operator
-        // BUT to make it work we must cary a copy function with the data as it would be impossible
-        // to compile if we have non-copyable objects
-        //if (deep()) m_data = impl::Data::construct<T>(*other.get());
+        // BUT to make it work we must carry a copy function with the data, otherwise this won't compile for non-copyable objects
+        //if (!other.unique()) m_data = impl::Data::construct<T>(*other.get());
         //else
+        {
             m_data = other.m_data;
+        }
+
+        // in any case we're not unique any more
+        m_unique = false;
     }
 
     // this is intentionally deleted
@@ -233,8 +219,8 @@ public:
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Member& operator=(U&& u)
     {
-        if (unique()) *qget() = std::forward<U>(u);
-        else replaceWith(impl::Data::construct<T>(std::forward<U>(u)));
+        if (unique()) *qget() = std::forward<U>(u); // modify the contents if unique
+        else replaceWith(impl::Data::construct<T>(std::forward<U>(u))); // otherwise replace
         return *this;
     }
 

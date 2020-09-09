@@ -143,7 +143,7 @@ TEST_CASE("PersonData new object")
     auto p1 = s1.payload();
     CHECK(PersonData::dc == 1);
 
-    s1.w()->name = "Bob";
+    s1->name = "Bob";
     CHECK(s1->name == "Bob");
     CHECK(p1->name == "Bob");
 
@@ -190,15 +190,15 @@ TEST_CASE("New object with members")
     auto apl = p->a.payload();
     auto adatapl = p->a->data.payload();
     CHECK(apl->data->name.empty());
-    p.w()->a->data->name = "Alice";
-    p.w()->a->data->age = 30;
-    p.w()->a->department = std::string("sales");
-    p.w()->a->salary = 120.1;
-    p.w()->b->data->name = "Bob";
-    p.w()->b->data->age = 40;
-    p.w()->b->department = std::string("accounting");
-    p.w()->b->salary = 64.6;
-    p.w()->type = "meeting";
+    p->a->data->name = "Alice";
+    p->a->data->age = 30;
+    p->a->department = std::string("sales");
+    p->a->salary = 120.1;
+    p->b->data->name = "Bob";
+    p->b->data->age = 40;
+    p->b->department = std::string("accounting");
+    p->b->salary = 64.6;
+    p->type = "meeting";
 
     CHECK(p->a->data->name == "Alice");
     CHECK(p->b->data->name == "Bob");
@@ -226,7 +226,7 @@ TEST_CASE("New object with members")
     CHECK(LC<PersonData>::ca == 0);
     CHECK(LC<PersonData>::ma == 0);
 
-    p.w()->a = Employee{};
+    p->a = Employee{};
     CHECK(apl == p->a.payload());
     CHECK(adatapl != p->a->data.payload());
     CHECK(p->a->data->name.empty());
@@ -252,11 +252,11 @@ TEST_CASE("New object with members")
     CHECK(LC<PersonData>::ma == 0);
 
     NewObject<Employee> c;
-    c.w()->data->name = "Charlie";
-    c.w()->data->age = 22;
-    c.w()->department = std::string("front desk");
+    c->data->name = "Charlie";
+    c->data->age = 22;
+    c->department = std::string("front desk");
 
-    p.w()->a = std::move(c);
+    p->a = std::move(c);
 
     CHECK(p->a->data->name == "Charlie");
     CHECK(p->a->data->age == 22);
@@ -281,7 +281,7 @@ TEST_CASE("Variable objects")
 {
     clearAllCounters();
     NewObject<Company> acme;
-    acme.w()->staff.resize(2);
+    acme->staff.resize(2);
 
     CHECK(LC<Employee>::alive == 2);
     CHECK(LC<Employee>::dc == 2);
@@ -290,7 +290,7 @@ TEST_CASE("Variable objects")
     CHECK(LC<Employee>::ca == 0);
     CHECK(LC<Employee>::ma == 0);
 
-    acme.w()->staff.resize(10);
+    acme->staff.resize(10);
 
     CHECK(LC<Employee>::alive == 10);
     CHECK(LC<Employee>::dc == 10);
@@ -299,7 +299,7 @@ TEST_CASE("Variable objects")
     CHECK(LC<Employee>::ca == 0);
     CHECK(LC<Employee>::ma == 0);
 
-    acme.w()->cto = NewObject<Boss>();
+    acme->cto = NewObject<Boss>();
 
     CHECK(LC<Boss>::alive == 2);
     CHECK(LC<Boss>::dc == 2);
@@ -308,10 +308,10 @@ TEST_CASE("Variable objects")
     CHECK(LC<Boss>::ca == 0);
     CHECK(LC<Boss>::ma == 0);
 
-    acme.w()->ceo->data->name = "Jeff";
-    acme.w()->ceo->blob = std::make_unique<std::vector<int>>(10);
+    acme->ceo->data->name = "Jeff";
+    acme->ceo->blob = std::make_unique<std::vector<int>>(10);
     CHECK(acme->ceo->data->name == "Jeff");
-    CHECK((*acme->ceo->blob)->size() == 10); // ugly syntax... but nothing we can do :(
+    CHECK((*acme->ceo.r()->blob)->size() == 10); // ugly syntax... but nothing we can do :(
 }
 
 TEST_CASE("Basic state")
