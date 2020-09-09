@@ -92,8 +92,6 @@ protected:
     void checkedReplace(Member& other);
     void checkedReplace(NewObject& other);
 
-
-
     friend class RootObject;
 
     template <typename T>
