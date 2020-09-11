@@ -18,39 +18,39 @@ namespace impl
 // NewObject
 
 ////////////////////////////////////////////////////////////////////////////////
-// Member
+// Node
 
-Member::Member() = default;
-Member::~Member() = default;
+Node::Node() = default;
+Node::~Node() = default;
 
-void Member::takeData(Member& other)
+void Node::takeData(Node& other)
 {
     m_data = std::move(other.m_data);
     other.m_data = {};
     m_unique = other.m_unique; // copy uniqueness
 }
 
-void Member::takeData(NewObject& other)
+void Node::takeData(NewObject& other)
 {
     m_data = std::move(other.m_data);
     other.m_data = {};
     // unique implicitly this is only called in constructors
 }
 
-void Member::replaceWith(Data data)
+void Node::replaceWith(Data data)
 {
     m_data = std::move(data);
     m_unique = true; // we're replaced so we're once more unique
 }
 
-void Member::checkedReplace(Member& other)
+void Node::checkedReplace(Node& other)
 {
     if (unique()) m_data = std::move(other.m_data);
     else replaceWith(std::move(other.m_data));
     other.m_data = {};
 }
 
-void Member::checkedReplace(NewObject& other)
+void Node::checkedReplace(NewObject& other)
 {
     if (unique()) m_data = std::move(other.m_data);
     else replaceWith(std::move(other.m_data));

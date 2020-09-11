@@ -104,15 +104,15 @@ struct PersonData : public LC<PersonData>
 
 struct Employee : public LC<Employee>
 {
-    Member<PersonData> data;
-    Member<std::string> department;
+    Node<PersonData> data;
+    Node<std::string> department;
     double salary = 0;
 };
 
 struct Pair : public LC<Pair>
 {
-    Member<Employee> a;
-    Member<Employee> b;
+    Node<Employee> a;
+    Node<Employee> b;
     std::string type;
 };
 
@@ -120,15 +120,15 @@ using Blob = std::unique_ptr<std::vector<int>>;
 
 struct Boss : public LC<Boss>
 {
-    Member<PersonData> data;
-    Member<Blob> blob;
+    Node<PersonData> data;
+    Node<Blob> blob;
 };
 
 struct Company : public LC<Company>
 {
-    std::vector<Member<Employee>> staff;
-    Member<Boss> ceo;
-    std::optional<Member<Boss>> cto;
+    std::vector<Node<Employee>> staff;
+    Node<Boss> ceo;
+    std::optional<Node<Boss>> cto;
 };
 
 } // anonymous namespace
@@ -174,7 +174,7 @@ TEST_CASE("PersonData new object")
     CHECK(PersonData::mc == 0);
 }
 
-TEST_CASE("New object with members")
+TEST_CASE("New object with nodes")
 {
     clearAllCounters();
 

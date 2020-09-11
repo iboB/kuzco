@@ -50,15 +50,15 @@ class KUZCO_API NewObject
 protected:
     Data m_data;
 
-    friend class Member;
+    friend class Node;
 };
 
-// base class for members
-class KUZCO_API Member
+// base class for nodes
+class KUZCO_API Node
 {
 protected:
-    Member();
-    ~Member();
+    Node();
+    ~Node();
 
     Data m_data;
 
@@ -79,7 +79,7 @@ protected:
 
     // for move constructors
     // take the data from another object and invalidate it
-    void takeData(Member& other);
+    void takeData(Node& other);
     void takeData(NewObject& other);
 
     // replaces the object's data with new data
@@ -89,7 +89,7 @@ protected:
     // perform the unique check
     // create new data if needed
     // reassign data from other source
-    void checkedReplace(Member& other);
+    void checkedReplace(Node& other);
     void checkedReplace(NewObject& other);
 
     friend class RootObject;
@@ -109,11 +109,9 @@ protected:
     // safe even during a transaction
     Data::Payload detachedRoot() const;
 
-    Member m_root;
+    Node m_root;
 
 private:
-    friend class Member;
-
     std::mutex m_transactionMutex;
 
     Data::Payload m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
@@ -142,16 +140,16 @@ public:
 };
 
 template <typename T>
-class Member;
+class Node;
 
 // convenience class which wraps a detached immutable object
 // never null
 // has quick access to underlying data
 template <typename T>
-class DetachedObject
+class Detached
 {
 public:
-    DetachedObject(std::shared_ptr<const T> payload)
+    Detached(std::shared_ptr<const T> payload)
         : m_qdata(payload.get())
         , m_payload(std::move(payload))
     {}
@@ -168,25 +166,25 @@ private:
 };
 
 template <typename T>
-class Member : public impl::Member
+class Node : public impl::Node
 {
 public:
     template <typename... Args, std::enable_if_t<std::is_constructible_v<T, Args...>, int> = 0>
-    Member(Args&&... args)
+    Node(Args&&... args)
     {
         m_data = impl::Data::construct<T>(std::forward<Args>(args)...);
         // T construction. Object is unique implicitly
     }
 
-    Member(const Member& other)
+    Node(const Node& other)
     {
         // here we always do a shallow copy
-        // the way to add members to the state should always happen through new objects
+        // the way to add nodes to the state should always happen through new objects
         // or value constructors
         // it should be impossible to add a deep object with a value constructor as you can't construct it without a NewObject wrapper
         // so here we can safely assume that the source is either a COW within a transaction (must be shallow)
-        // or an implicit detach (copy of an already detached member, or one from a new object)
-        // or an interstate exchange (detached member copied from one root onto another in another's transaction - shallow again)
+        // or an implicit detach (copy of an already detached node, or one from a new object)
+        // or an interstate exchange (detached node copied from one root onto another in another's transaction - shallow again)
         // if we absolutely need partial deep exchanges, we can uncomment the following two lines and the ones in the copy assign operator
         // BUT to make it work we must carry a copy function with the data, otherwise this won't compile for non-copyable objects
         //if (!other.unique()) m_data = impl::Data::construct<T>(*other.get());
@@ -201,28 +199,28 @@ public:
 
     // this is intentionally deleted
     // see comments in copy constructor on why
-    Member& operator=(const Member& other) = delete;
+    Node& operator=(const Node& other) = delete;
     //{
     //    if (unique()) *qget() = *other.get();
     //    else replaceWith(impl::Data::construct<T>(*other.get()));
     //    return *this;
     //}
 
-    Member(Member&& other) noexcept { takeData(other); }
-    Member& operator=(Member&& other) { checkedReplace(other); return *this; }
+    Node(Node&& other) noexcept { takeData(other); }
+    Node& operator=(Node&& other) { checkedReplace(other); return *this; }
 
-    Member(NewObject<T>&& obj) noexcept { takeData(obj); }
-    Member& operator=(NewObject<T>&& obj) { checkedReplace(obj); return *this; }
+    Node(NewObject<T>&& obj) noexcept { takeData(obj); }
+    Node& operator=(NewObject<T>&& obj) { checkedReplace(obj); return *this; }
 
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
-    Member& operator=(U&& u)
+    Node& operator=(U&& u)
     {
         if (unique()) *qget() = std::forward<U>(u); // modify the contents if unique
         else replaceWith(impl::Data::construct<T>(std::forward<U>(u))); // otherwise replace
         return *this;
     }
 
-    const Member& r() const { return *this; }
+    const Node& r() const { return *this; }
     const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
@@ -235,7 +233,7 @@ public:
     T* operator->() { return get(); }
     T& operator*() { return *get(); }
 
-    DetachedObject<T> detach() const { return DetachedObject(payload()); }
+    Detached<T> detach() const { return Detached(payload()); }
     std::shared_ptr<const T> payload() const { return std::static_pointer_cast<const T>(m_data.payload); }
 
 private:
@@ -263,43 +261,43 @@ public:
 
     void endTransaction(bool store = true) { impl::RootObject::endTransaction(store); }
 
-    DetachedObject<T> detach() const { return DetachedObject(detachedPayload()); }
+    Detached<T> detach() const { return Detached(detachedPayload()); }
     std::shared_ptr<const T> detachedPayload() const { return std::static_pointer_cast<const T>(detachedRoot()); }
 };
 
 // shallow comparisons
 template <typename T>
-bool operator==(const DetachedObject<T>& a, const DetachedObject<T>& b)
+bool operator==(const Detached<T>& a, const Detached<T>& b)
 {
     return a.get() == b.get();
 }
 
 template <typename T>
-bool operator!=(const DetachedObject<T>& a, const DetachedObject<T>& b)
+bool operator!=(const Detached<T>& a, const Detached<T>& b)
 {
     return a.get() != b.get();
 }
 
 template <typename T>
-bool operator==(const DetachedObject<T>& a, const Member<T>& b)
+bool operator==(const Detached<T>& a, const Node<T>& b)
 {
     return a.get() == b.get();
 }
 
 template <typename T>
-bool operator!=(const DetachedObject<T>& a, const Member<T>& b)
+bool operator!=(const Detached<T>& a, const Node<T>& b)
 {
     return a.get() != b.get();
 }
 
 template <typename T>
-bool operator==(const Member<T>& a, const Member<T>& b)
+bool operator==(const Node<T>& a, const Node<T>& b)
 {
     return a.get() == b.get();
 }
 
 template <typename T>
-bool operator!=(const Member<T>& a, const Member<T>& b)
+bool operator!=(const Node<T>& a, const Node<T>& b)
 {
     return a.get() != b.get();
 }

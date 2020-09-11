@@ -33,20 +33,20 @@ struct PersonData
 
 struct Employee
 {
-    Member<PersonData> data;
-    Member<std::string> department;
+    Node<PersonData> data;
+    Node<std::string> department;
     double salary = 0;
 };
 
 struct Company
 {
     std::string name = "Foo";
-    std::vector<Member<Employee>> staff;
-    Member<Employee> ceo;
-    std::optional<Member<Employee>> cto;
+    std::vector<Node<Employee>> staff;
+    Node<Employee> ceo;
+    std::optional<Node<Employee>> cto;
 };
 
-using DRoot = DetachedObject<Company>;
+using DRoot = Detached<Company>;
 
 std::random_device rdevice;
 std::mutex rmutex;
