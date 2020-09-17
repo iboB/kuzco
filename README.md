@@ -1,6 +1,6 @@
 # kuzco
 
-No touchy! Immutable objects for C++
+No touchy! Immutable state for C++
 
 *This code is used in production. However it's not yet open-source friendly. I'm working documenting it*
 
