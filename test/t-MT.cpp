@@ -107,7 +107,7 @@ struct SingleWriterTest
     std::vector<std::function<void(Company*)>> writes;
     std::vector<std::function<void(DRoot)>> reads;
 
-    std::unique_ptr<RootObject<Company>> root;
+    std::unique_ptr<Root<Company>> root;
 };
 
 } // anonymous namespace
@@ -188,6 +188,6 @@ TEST_CASE("Single writer")
         },
     };
 
-    test.root.reset(new RootObject(std::move(acme)));
+    test.root.reset(new Root(std::move(acme)));
     test.run();
 }

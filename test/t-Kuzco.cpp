@@ -317,7 +317,7 @@ TEST_CASE("Variable objects")
 TEST_CASE("Basic state")
 {
     clearAllCounters();
-    RootObject root = NewObject<Pair>{};
+    Root root = NewObject<Pair>{};
 
     auto pre = root.detach();
 
@@ -347,7 +347,7 @@ TEST_CASE("Basic state")
 TEST_CASE("Complex state")
 {
     clearAllCounters();
-    RootObject root = NewObject<Company>{};
+    Root root = NewObject<Company>{};
     CHECK(LC<Company>::alive == 1);
     CHECK(LC<Company>::dc == 1);
     CHECK(LC<Company>::cc == 0);

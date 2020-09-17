@@ -58,20 +58,20 @@ void Node::checkedReplace(NewObject& other)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// RootObject
+// Root
 
-RootObject::RootObject(NewObject&& obj) noexcept
+Root::Root(NewObject&& obj) noexcept
 {
     m_root.takeData(obj);
     m_detachedRoot = m_root.m_data.payload;
 }
 
-void RootObject::beginTransaction()
+void Root::beginTransaction()
 {
     m_transactionMutex.lock();
 }
 
-void RootObject::endTransaction(bool store)
+void Root::endTransaction(bool store)
 {
     // update handle
     if (store) {
@@ -86,7 +86,7 @@ void RootObject::endTransaction(bool store)
     m_transactionMutex.unlock();
 }
 
-Data::Payload RootObject::detachedRoot() const
+Data::Payload Root::detachedRoot() const
 {
     return std::atomic_load_explicit(&m_detachedRoot, std::memory_order_relaxed);
 }

@@ -17,7 +17,7 @@
 namespace kuzco
 {
 template <typename T>
-class RootObject;
+class Root;
 
 namespace impl
 {
@@ -42,7 +42,7 @@ struct Data
     }
 };
 
-class RootObject;
+class Root;
 
 // base class for new objects
 class KUZCO_API NewObject
@@ -92,16 +92,16 @@ protected:
     void checkedReplace(Node& other);
     void checkedReplace(NewObject& other);
 
-    friend class RootObject;
+    friend class Root;
 
     template <typename T>
-    friend class kuzco::RootObject;
+    friend class kuzco::Root;
 };
 
-class KUZCO_API RootObject
+class KUZCO_API Root
 {
 protected:
-    RootObject(NewObject&& obj) noexcept;
+    Root(NewObject&& obj) noexcept;
 
     void beginTransaction();
     void endTransaction(bool store);
@@ -241,25 +241,25 @@ private:
 };
 
 template <typename T>
-class RootObject : public impl::RootObject
+class Root : public impl::Root
 {
 public:
-    RootObject(NewObject<T>&& obj) : impl::RootObject(std::move(obj)) {}
+    Root(NewObject<T>&& obj) : impl::Root(std::move(obj)) {}
 
-    RootObject(const RootObject&) = delete;
-    RootObject& operator=(const RootObject&) = delete;
-    RootObject(RootObject&&) = delete;
-    RootObject& operator=(RootObject&&) = delete;
+    Root(const Root&) = delete;
+    Root& operator=(const Root&) = delete;
+    Root(Root&&) = delete;
+    Root& operator=(Root&&) = delete;
 
     // returns a non-const pointer to the underlying data
     T* beginTransaction()
     {
-        impl::RootObject::beginTransaction();
+        impl::Root::beginTransaction();
         m_root.replaceWith(impl::Data::construct<T>(*reinterpret_cast<const T*>(m_root.m_data.qdata)));
         return reinterpret_cast<T*>(m_root.m_data.qdata);
     }
 
-    void endTransaction(bool store = true) { impl::RootObject::endTransaction(store); }
+    void endTransaction(bool store = true) { impl::Root::endTransaction(store); }
 
     Detached<T> detach() const { return Detached(detachedPayload()); }
     std::shared_ptr<const T> detachedPayload() const { return std::static_pointer_cast<const T>(detachedRoot()); }

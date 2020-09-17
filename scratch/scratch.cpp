@@ -14,7 +14,7 @@ struct ndc
 
 int main()
 {
-    RootObject<ndc> ri = NewObject<ndc>(3);
+    Root<ndc> ri = NewObject<ndc>(3);
     auto d = ri.detach();
     auto d2 = d;
 }
