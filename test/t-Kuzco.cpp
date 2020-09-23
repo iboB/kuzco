@@ -10,7 +10,6 @@
 #include "doctest.hpp"
 
 #include <string_view>
-#include <optional>
 
 TEST_SUITE_BEGIN("Kuzco Objects");
 
@@ -128,7 +127,7 @@ struct Company : public LC<Company>
 {
     std::vector<Node<Employee>> staff;
     Node<Boss> ceo;
-    std::optional<Node<Boss>> cto;
+    OptNode<Boss> cto;
 };
 
 } // anonymous namespace
@@ -298,6 +297,8 @@ TEST_CASE("Variable objects")
     CHECK(LC<Employee>::mc == 0);
     CHECK(LC<Employee>::ca == 0);
     CHECK(LC<Employee>::ma == 0);
+
+    CHECK(!acme->cto);
 
     acme->cto = NewObject<Boss>();
 

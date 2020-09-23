@@ -241,6 +241,84 @@ private:
 };
 
 template <typename T>
+class OptDetached
+{
+public:
+    OptDetached()
+        : m_qdata(nullptr)
+    {}
+
+    OptDetached(const Detached<T>& d)
+        : m_qdata(d.get())
+        , m_payload(d.payload())
+    {}
+
+    OptDetached(std::shared_ptr<const T> payload)
+        : m_qdata(payload.get())
+        , m_payload(std::move(payload))
+    {}
+
+    const T* get() const { return m_qdata; }
+    const T* operator->() const { return get(); }
+    const T& operator*() const { return *get(); }
+
+    explicit operator bool() const { return !!m_qdata; }
+
+    std::shared_ptr<const T> payload() const { return m_payload; }
+private:
+    const T* m_qdata;
+    std::shared_ptr<const T> m_payload;
+};
+
+template <typename T>
+class OptNode : public impl::Node
+{
+public:
+    OptNode() = default;
+    OptNode(const OptNode& other)
+    {
+        m_data = other.m_data;
+        if (m_data.qdata) {
+            // no point in making empty opt-nodes non-unique
+            m_unique = false;
+        }
+    }
+    OptNode& operator=(const OptNode&) = delete;
+
+    OptNode(OptNode&& other) noexcept { takeData(other); }
+    OptNode& operator=(OptNode&& other) { checkedReplace(other); return *this; }
+
+    OptNode(NewObject<T>&& obj) noexcept { takeData(obj); }
+    OptNode& operator=(NewObject<T>&& obj) { checkedReplace(obj); return *this; }
+
+    OptNode(std::nullptr_t) noexcept {} // nothing special to do
+    OptNode& operator=(std::nullptr_t) { m_data = {}; return *this; }
+
+    void reset() { m_data = {}; }
+
+    explicit operator bool() const { return !!m_data.qdata; }
+
+    const OptNode& r() const { return *this; }
+    const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
+    const T* operator->() const { return get(); }
+    const T& operator*() const { return *get(); }
+
+    T* get()
+    {
+        if (m_data.qdata && !unique()) replaceWith(impl::Data::construct<T>(*r().get()));
+        return qget();
+    }
+    T* operator->() { return get(); }
+    T& operator*() { return *get(); }
+
+    OptDetached<T> detach() const { return OptDetached(payload()); }
+    std::shared_ptr<const T> payload() const { return std::static_pointer_cast<const T>(m_data.payload); }
+
+private:
+    T* qget() { return reinterpret_cast<T*>(m_data.qdata); }
+};
+
+template <typename T>
 class Root : public impl::Root
 {
 public:

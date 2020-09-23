@@ -9,7 +9,6 @@
 
 #include "doctest.hpp"
 
-#include <optional>
 #include <thread>
 #include <functional>
 #include <string_view>
@@ -43,7 +42,7 @@ struct Company
     std::string name = "Foo";
     std::vector<Node<Employee>> staff;
     Node<Employee> ceo;
-    std::optional<Node<Employee>> cto;
+    OptNode<Employee> cto;
 };
 
 using DRoot = Detached<Company>;
@@ -130,7 +129,7 @@ TEST_CASE("Single writer")
 
     test.reads = {
         [](DRoot c) {
-            CHECK_FALSE(c->cto.has_value());
+            CHECK_FALSE(!!c->cto);
         },
         [](DRoot c) {
             CHECK(c->staff.size() > 3);
