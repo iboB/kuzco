@@ -395,3 +395,106 @@ TEST_CASE("Complex state")
     CHECK(LC<Company>::ca == 0);
     CHECK(LC<Company>::ma == 0);
 }
+
+TEST_CASE("Interstate exchange")
+{
+    clearAllCounters();
+    NewObject<Company> no;
+
+    CHECK(Company::alive == 1);
+    CHECK(Company::dc == 1);
+    CHECK(PersonData::alive == 1);
+
+    no->staff.emplace_back();
+
+    CHECK(Company::alive == 1);
+    CHECK(Company::dc == 1);
+    CHECK(Company::cc == 0);
+    CHECK(Company::mc == 0);
+    CHECK(PersonData::alive == 2);
+    CHECK(PersonData::dc == 2);
+    CHECK(PersonData::cc == 0);
+
+    Root root(std::move(no));
+
+    CHECK(Company::alive == 1);
+    CHECK(Company::dc == 1);
+    CHECK(Company::cc == 0);
+    CHECK(Company::mc == 0);
+    CHECK(PersonData::alive == 2);
+    CHECK(PersonData::dc == 2);
+    CHECK(PersonData::cc == 0);
+
+    NewObject<Boss> boss = *root.detach()->ceo;
+
+    CHECK(Company::alive == 1);
+    CHECK(Company::dc == 1);
+    CHECK(Company::cc == 0);
+    CHECK(Company::mc == 0);
+    CHECK(PersonData::alive == 2);
+    CHECK(PersonData::dc == 2);
+    CHECK(PersonData::cc == 0);
+    CHECK(Boss::alive == 2);
+    CHECK(Boss::dc == 1);
+    CHECK(Boss::cc == 1);
+
+    boss->data->name = "Bill";
+
+    CHECK(Company::alive == 1);
+    CHECK(Company::dc == 1);
+    CHECK(Company::cc == 0);
+    CHECK(Company::mc == 0);
+    CHECK(PersonData::alive == 3);
+    CHECK(PersonData::dc == 2);
+    CHECK(PersonData::cc == 1);
+    CHECK(Boss::alive == 2);
+    CHECK(Boss::dc == 1);
+    CHECK(Boss::cc == 1);
+
+    auto t = root.beginTransaction();
+    t->ceo = std::move(boss);
+    root.endTransaction();
+
+    CHECK(Company::alive == 1);
+    CHECK(Company::dc == 1);
+    CHECK(Company::cc == 1);
+    CHECK(Company::mc == 0);
+    CHECK(PersonData::alive == 2);
+    CHECK(PersonData::dc == 2);
+    CHECK(PersonData::cc == 1);
+    CHECK(Boss::alive == 1);
+    CHECK(Boss::dc == 1);
+    CHECK(Boss::cc == 1);
+
+    Root other = NewObject<Company>{};
+
+    t = other.beginTransaction();
+    t->ceo = NewObject<Boss>(*root.detach()->ceo);
+    other.endTransaction();
+
+    CHECK(Company::alive == 2);
+    CHECK(Company::dc == 2);
+    CHECK(Company::cc == 2);
+    CHECK(Company::mc == 0);
+    CHECK(PersonData::alive == 2);
+    CHECK(PersonData::dc == 3);
+    CHECK(PersonData::cc == 1);
+    CHECK(Boss::alive == 2);
+    CHECK(Boss::dc == 2);
+    CHECK(Boss::cc == 2);
+
+    t = other.beginTransaction();
+    t->ceo->data->name = "Steve";
+    other.endTransaction();
+
+    CHECK(Company::alive == 2);
+    CHECK(Company::dc == 2);
+    CHECK(Company::cc == 3);
+    CHECK(Company::mc == 0);
+    CHECK(PersonData::alive == 3);
+    CHECK(PersonData::dc == 3);
+    CHECK(PersonData::cc == 2);
+    CHECK(Boss::alive == 2);
+    CHECK(Boss::dc == 2);
+    CHECK(Boss::cc == 3);
+}
