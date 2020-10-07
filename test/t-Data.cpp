@@ -15,7 +15,7 @@ using namespace kuzco::impl;
 
 TEST_CASE("Construction")
 {
-    Data d;
+    Data<void> d;
     CHECK_FALSE(d.payload);
     CHECK_FALSE(d.qdata);
 
@@ -23,8 +23,8 @@ TEST_CASE("Construction")
     CHECK_FALSE(d2.payload);
     CHECK_FALSE(d2.qdata);
 
-    auto sd = Data::construct<std::string>("asdf");
-    auto p = std::reinterpret_pointer_cast<std::string>(sd.payload);
+    auto sd = Data<std::string>::construct("asdf");
+    auto p = sd.payload;
     CHECK(p == sd.payload);
     CHECK(*p == "asdf");
     CHECK(sd.qdata == p.get());

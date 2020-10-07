@@ -7,8 +7,6 @@
 //
 #pragma once
 
-#include "API.h"
-
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -16,23 +14,22 @@
 
 namespace kuzco
 {
-template <typename T>
-class Root;
 
 namespace impl
 {
 
 // a unit of state information
+template <typename T>
 struct Data
 {
-    using Payload = std::shared_ptr<void>;
+    using Payload = std::shared_ptr<T>;
 
-    void* qdata = nullptr; // quick access pointer to save dereferencs of the internal shared pointer
+    T* qdata = nullptr; // quick access pointer to save dereferencs of the internal shared pointer
     Payload payload;
 
     // not guarding this through enable_if
     // all calls to this function should be guarded from the callers
-    template <typename T, typename... Args>
+    template <typename... Args>
     static Data construct(Args&&... args)
     {
         Data ret;
@@ -42,25 +39,50 @@ struct Data
     }
 };
 
-class Root;
+template <typename T>
+class BasicNode;
+
+} // namespace impl
 
 // base class for new objects
-class KUZCO_API NewObject
+template <typename T>
+class NewObject
 {
-protected:
-    Data m_data;
+public:
+    template <typename... Args>
+    NewObject(Args&&... args)
+    {
+        m_data = impl::Data<T>::construct(std::forward<Args>(args)...);
+    }
 
-    friend class Node;
+    T* get() { return m_data.qdata; }
+    T* operator->() { return get(); }
+
+    const T* get() const { return m_data.qdata; }
+    const T* operator->() const { return get(); }
+    const T& operator*() const { return *get(); }
+
+    std::shared_ptr<const T> payload() const { return m_data.payload; }
+private:
+    impl::Data<T> m_data;
+
+    friend class impl::BasicNode<T>;
 };
 
-// base class for nodes
-class KUZCO_API Node
-{
-protected:
-    Node();
-    ~Node();
+template <typename T>
+class Root;
 
-    Data m_data;
+namespace impl
+{
+
+// base class for nodes
+template <typename T>
+class BasicNode
+{
+public:
+    std::shared_ptr<const T> payload() const { return m_data.payload; }
+protected:
+    Data<T> m_data;
 
     // returns if the object is unique and its data is safe to edit in place
     // if the we're working on new objects, we're unique since no one else has a pointer to it
@@ -79,68 +101,49 @@ protected:
 
     // for move constructors
     // take the data from another object and invalidate it
-    void takeData(Node& other);
-    void takeData(NewObject& other);
+    void takeData(BasicNode& other)
+    {
+        m_data = std::move(other.m_data);
+        other.m_data = {};
+        m_unique = other.m_unique; // copy uniqueness
+    }
+    void takeData(NewObject<T>& other)
+    {
+        m_data = std::move(other.m_data);
+        other.m_data = {};
+        // unique implicitly this is only called in constructors
+    }
 
     // replaces the object's data with new data
     // only valid in a trasaction and if not unique
-    void replaceWith(Data data);
+    void replaceWith(Data<T> data)
+    {
+        m_data = std::move(data);
+        m_unique = true; // we're replaced so we're once more unique
+    }
 
     // perform the unique check
     // create new data if needed
     // reassign data from other source
-    void checkedReplace(Node& other);
-    void checkedReplace(NewObject& other);
+    void checkedReplace(BasicNode& other)
+    {
+        if (unique()) m_data = std::move(other.m_data);
+        else replaceWith(std::move(other.m_data));
+        other.m_data = {};
+    }
+    void checkedReplace(NewObject<T>& other)
+    {
+        if (unique()) m_data = std::move(other.m_data);
+        else replaceWith(std::move(other.m_data));
+        other.m_data = {};
+    }
 
-    friend class Root;
+    T* qget() { return m_data.qdata; }
 
-    template <typename T>
-    friend class kuzco::Root;
-};
-
-class KUZCO_API Root
-{
-protected:
-    Root(NewObject&& obj) noexcept;
-
-    void beginTransaction();
-    void endTransaction(bool store);
-
-    // safe even during a transaction
-    Data::Payload detachedRoot() const;
-
-    Node m_root;
-
-private:
-    std::mutex m_transactionMutex;
-
-    Data::Payload m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
+    friend class Root<T>;
 };
 
 } // namespace impl
-
-template <typename T>
-class NewObject : public impl::NewObject
-{
-public:
-    template <typename... Args>
-    NewObject(Args&&... args)
-    {
-        m_data = impl::Data::construct<T>(std::forward<Args>(args)...);
-    }
-
-    T* get() { return reinterpret_cast<T*>(m_data.qdata); }
-    T* operator->() { return get();  }
-
-    const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
-    const T* operator->() const { return get(); }
-    const T& operator*() const { return *get(); }
-
-    std::shared_ptr<const T> payload() const { return std::static_pointer_cast<const T>(m_data.payload); }
-};
-
-template <typename T>
-class Node;
 
 // convenience class which wraps a detached immutable object
 // never null
@@ -165,14 +168,15 @@ private:
     std::shared_ptr<const T> m_payload;
 };
 
+
 template <typename T>
-class Node : public impl::Node
+class Node : public impl::BasicNode<T>
 {
 public:
     template <typename... Args, std::enable_if_t<std::is_constructible_v<T, Args...>, int> = 0>
     Node(Args&&... args)
     {
-        m_data = impl::Data::construct<T>(std::forward<Args>(args)...);
+        this->m_data = impl::Data<T>::construct(std::forward<Args>(args)...);
         // T construction. Object is unique implicitly
     }
 
@@ -187,14 +191,14 @@ public:
         // or an interstate exchange (detached node copied from one root onto another in another's transaction - shallow again)
         // if we absolutely need partial deep exchanges, we can uncomment the following two lines and the ones in the copy assign operator
         // BUT to make it work we must carry a copy function with the data, otherwise this won't compile for non-copyable objects
-        //if (!other.unique()) m_data = impl::Data::construct<T>(*other.get());
+        //if (!other.unique()) m_data = impl::Data<T>::construct(*other.get());
         //else
         {
-            m_data = other.m_data;
+            this->m_data = other.m_data;
         }
 
         // in any case we're not unique any more
-        m_unique = false;
+        this->m_unique = false;
     }
 
     // this is intentionally deleted
@@ -202,42 +206,38 @@ public:
     Node& operator=(const Node& other) = delete;
     //{
     //    if (unique()) *qget() = *other.get();
-    //    else replaceWith(impl::Data::construct<T>(*other.get()));
+    //    else replaceWith(impl::Data<T>::construct(*other.get()));
     //    return *this;
     //}
 
-    Node(Node&& other) noexcept { takeData(other); }
-    Node& operator=(Node&& other) { checkedReplace(other); return *this; }
+    Node(Node&& other) noexcept { this->takeData(other); }
+    Node& operator=(Node&& other) { this->checkedReplace(other); return *this; }
 
-    Node(NewObject<T>&& obj) noexcept { takeData(obj); }
-    Node& operator=(NewObject<T>&& obj) { checkedReplace(obj); return *this; }
+    Node(NewObject<T>&& obj) noexcept { this->takeData(obj); }
+    Node& operator=(NewObject<T>&& obj) { this->checkedReplace(obj); return *this; }
 
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Node& operator=(U&& u)
     {
-        if (unique()) *qget() = std::forward<U>(u); // modify the contents if unique
-        else replaceWith(impl::Data::construct<T>(std::forward<U>(u))); // otherwise replace
+        if (this->unique()) *this->qget() = std::forward<U>(u); // modify the contents if unique
+        else this->replaceWith(impl::Data<T>::construct(std::forward<U>(u))); // otherwise replace
         return *this;
     }
 
     const Node& r() const { return *this; }
-    const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
+    const T* get() const { return this->m_data.qdata; }
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
 
     T* get()
     {
-        if (!unique()) replaceWith(impl::Data::construct<T>(*r().get()));
-        return qget();
+        if (!this->unique()) this->replaceWith(impl::Data<T>::construct(*r().get()));
+        return this->qget();
     }
     T* operator->() { return get(); }
     T& operator*() { return *get(); }
 
-    Detached<T> detach() const { return Detached(payload()); }
-    std::shared_ptr<const T> payload() const { return std::static_pointer_cast<const T>(m_data.payload); }
-
-private:
-    T* qget() { return reinterpret_cast<T*>(m_data.qdata); }
+    Detached<T> detach() const { return Detached(this->payload()); }
 };
 
 template <typename T>
@@ -271,58 +271,59 @@ private:
 };
 
 template <typename T>
-class OptNode : public impl::Node
+class OptNode : public impl::BasicNode<T>
 {
 public:
     OptNode() = default;
     OptNode(const OptNode& other)
     {
-        m_data = other.m_data;
-        if (m_data.qdata) {
+        this->m_data = other.m_data;
+        if (this->m_data.qdata)
+        {
             // no point in making empty opt-nodes non-unique
-            m_unique = false;
+            this->m_unique = false;
         }
     }
     OptNode& operator=(const OptNode&) = delete;
 
-    OptNode(OptNode&& other) noexcept { takeData(other); }
-    OptNode& operator=(OptNode&& other) { checkedReplace(other); return *this; }
+    OptNode(OptNode&& other) noexcept { this->takeData(other); }
+    OptNode& operator=(OptNode&& other) { this->checkedReplace(other); return *this; }
 
-    OptNode(NewObject<T>&& obj) noexcept { takeData(obj); }
-    OptNode& operator=(NewObject<T>&& obj) { checkedReplace(obj); return *this; }
+    OptNode(NewObject<T>&& obj) noexcept { this->takeData(obj); }
+    OptNode& operator=(NewObject<T>&& obj) { this->checkedReplace(obj); return *this; }
 
     OptNode(std::nullptr_t) noexcept {} // nothing special to do
-    OptNode& operator=(std::nullptr_t) { m_data = {}; return *this; }
+    OptNode& operator=(std::nullptr_t) { this->m_data = {}; return *this; }
 
-    void reset() { m_data = {}; }
+    void reset() { this->m_data = {}; }
 
-    explicit operator bool() const { return !!m_data.qdata; }
+    explicit operator bool() const { return !!this->m_data.qdata; }
 
     const OptNode& r() const { return *this; }
-    const T* get() const { return reinterpret_cast<const T*>(m_data.qdata); }
+    const T* get() const { return this->m_data.qdata; }
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
 
     T* get()
     {
-        if (m_data.qdata && !unique()) replaceWith(impl::Data::construct<T>(*r().get()));
-        return qget();
+        if (this->m_data.qdata && !this->unique()) this->replaceWith(impl::Data<T>::construct(*r().get()));
+        return this->qget();
     }
     T* operator->() { return get(); }
     T& operator*() { return *get(); }
 
-    OptDetached<T> detach() const { return OptDetached(payload()); }
-    std::shared_ptr<const T> payload() const { return std::static_pointer_cast<const T>(m_data.payload); }
-
-private:
-    T* qget() { return reinterpret_cast<T*>(m_data.qdata); }
+    OptDetached<T> detach() const { return OptDetached(this->payload()); }
 };
 
 template <typename T>
-class Root : public impl::Root
+class Root
 {
 public:
-    Root(NewObject<T>&& obj) : impl::Root(std::move(obj)) {}
+    Root(NewObject<T>&& obj)
+        : m_root(std::move(obj))
+    {
+        m_detachedRoot = m_root.m_data.payload;
+    }
 
     Root(const Root&) = delete;
     Root& operator=(const Root&) = delete;
@@ -332,15 +333,44 @@ public:
     // returns a non-const pointer to the underlying data
     T* beginTransaction()
     {
-        impl::Root::beginTransaction();
-        m_root.replaceWith(impl::Data::construct<T>(*reinterpret_cast<const T*>(m_root.m_data.qdata)));
-        return reinterpret_cast<T*>(m_root.m_data.qdata);
+        m_transactionMutex.lock();
+        m_root.replaceWith(impl::Data<T>::construct(*m_root.m_data.qdata));
+        return m_root.m_data.qdata;
     }
 
-    void endTransaction(bool store = true) { impl::Root::endTransaction(store); }
+    void endTransaction(bool store = true)
+    {
+        // update handle
+        if (store)
+        {
+            // detach
+            std::atomic_store_explicit(&m_detachedRoot, m_root.m_data.payload, std::memory_order_relaxed);
+        }
+        else
+        {
+            // abort transaction
+            m_root.m_data.payload = m_detachedRoot;
+            m_root.m_data.qdata = m_root.m_data.payload.get();
+        }
+        m_transactionMutex.unlock();
+    }
 
     Detached<T> detach() const { return Detached(detachedPayload()); }
-    std::shared_ptr<const T> detachedPayload() const { return std::static_pointer_cast<const T>(detachedRoot()); }
+    std::shared_ptr<const T> detachedPayload() const
+    {
+        return std::atomic_load_explicit(&m_detachedRoot, std::memory_order_relaxed);
+    }
+
+private:
+    using PL = typename impl::Data<T>::Payload;
+
+    // safe even during a transaction
+    PL detachedRoot() const;
+
+    Node<T> m_root;
+
+    std::mutex m_transactionMutex;
+    PL m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
 };
 
 // shallow comparisons

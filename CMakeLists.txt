@@ -11,8 +11,6 @@ else()
     set(dev_mode OFF)
 endif()
 
-option(KUZCO_SHARED_LIB "Kuzco: build as a shared library" ON)
-
 option(KUZCO_BUILD_TESTS "Kuzco: build tests" ${dev_mode})
 option(KUZCO_BUILD_EXAMPLES "Kuzco: build examples" ${dev_mode})
 option(KUZCO_BUILD_SCRATCH "Kuzco: build scratch project for testing and experiments" ${dev_mode})
