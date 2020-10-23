@@ -36,6 +36,24 @@ public:
     const value_type& operator[](size_t i) const { return this->get()->operator*[](i); }
     value_type& operator[](size_t i) { return this->get()->operator*[](i); }
 
+    iteartor begin() { return this->get()->begin(); }
+    iterator end() { return this->get()->end(); }
+    const_iteartor begin() const { return this->get()->begin(); }
+    const_iterator end() const { return this->get()->end(); }
+
+    void clear()
+    {
+        if (!unique)
+        {
+            auto newVec = impl::Data<Wrapped>::construct();
+            this->replaceWith(std::move(newVec));
+        }
+        else
+        {
+            this->qget()->clear();
+        }
+    }
+
     template <typename... Args>
     value_type& emplace_back(Args&&... args)
     {
@@ -51,7 +69,6 @@ public:
     }
 
 private:
-    using Super::get;
     using Super::operator*;
     using Super::operator->;
 };
