@@ -9,4 +9,4 @@ add_executable(test-kuzco
     t-MT.cpp
 )
 target_link_libraries(test-kuzco kuzco doctest)
-add_test(NAME kuzco COMMAND $<TARGET_FILE:test-kuzco>)
+add_test(NAME kuzco COMMAND test-kuzco)
