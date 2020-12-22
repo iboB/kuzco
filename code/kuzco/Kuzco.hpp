@@ -44,31 +44,6 @@ class BasicNode;
 
 } // namespace impl
 
-// base class for new objects
-template <typename T>
-class NewObject
-{
-public:
-    template <typename... Args>
-    NewObject(Args&&... args)
-    {
-        m_data = impl::Data<T>::construct(std::forward<Args>(args)...);
-    }
-
-    T* get() { return m_data.qdata; }
-    T* operator->() { return get(); }
-
-    const T* get() const { return m_data.qdata; }
-    const T* operator->() const { return get(); }
-    const T& operator*() const { return *get(); }
-
-    std::shared_ptr<const T> payload() const { return m_data.payload; }
-private:
-    impl::Data<T> m_data;
-
-    friend class impl::BasicNode<T>;
-};
-
 template <typename T>
 class Root;
 
@@ -90,7 +65,7 @@ protected:
     bool unique() const { return m_unique; }
 
     // unique is different from (use_count == 1)
-    // for NewObject and in a transaction you could get the payload of a unique object
+    // for new (local) objects and in a transaction you could get the payload of a unique object
     // this will increment the use count, but unique will still be true
     // you think of unique as "unique in the current thread"
     // unique also means that we can replace the current data with another (not only it's payload)
@@ -107,12 +82,6 @@ protected:
         other.m_data = {};
         m_unique = other.m_unique; // copy uniqueness
     }
-    void takeData(NewObject<T>& other)
-    {
-        m_data = std::move(other.m_data);
-        other.m_data = {};
-        // unique implicitly this is only called in constructors
-    }
 
     // replaces the object's data with new data
     // only valid in a trasaction and if not unique
@@ -126,12 +95,6 @@ protected:
     // create new data if needed
     // reassign data from other source
     void checkedReplace(BasicNode& other)
-    {
-        if (unique()) m_data = std::move(other.m_data);
-        else replaceWith(std::move(other.m_data));
-        other.m_data = {};
-    }
-    void checkedReplace(NewObject<T>& other)
     {
         if (unique()) m_data = std::move(other.m_data);
         else replaceWith(std::move(other.m_data));
@@ -185,7 +148,7 @@ public:
         // here we always do a shallow copy
         // the way to add nodes to the state should always happen through new objects
         // or value constructors
-        // it should be impossible to add a deep object with a value constructor as you can't construct it without a NewObject wrapper
+        // it should be impossible to add a deep object with a value constructor
         // so here we can safely assume that the source is either a COW within a transaction (must be shallow)
         // or an implicit detach (copy of an already detached node, or one from a new object)
         // or an interstate exchange (detached node copied from one root onto another in another's transaction - shallow again)
@@ -212,9 +175,6 @@ public:
 
     Node(Node&& other) noexcept { this->takeData(other); }
     Node& operator=(Node&& other) { this->checkedReplace(other); return *this; }
-
-    Node(NewObject<T>&& obj) noexcept { this->takeData(obj); }
-    Node& operator=(NewObject<T>&& obj) { this->checkedReplace(obj); return *this; }
 
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Node& operator=(U&& u)
@@ -289,11 +249,10 @@ public:
     OptNode(OptNode&& other) noexcept { this->takeData(other); }
     OptNode& operator=(OptNode&& other) { this->checkedReplace(other); return *this; }
 
-    OptNode(NewObject<T>&& obj) noexcept { this->takeData(obj); }
-    OptNode& operator=(NewObject<T>&& obj) { this->checkedReplace(obj); return *this; }
-
     OptNode(std::nullptr_t) noexcept {} // nothing special to do
     OptNode& operator=(std::nullptr_t) { this->m_data = {}; return *this; }
+
+    OptNode(Node<T>&& other) noexcept { this->takeData(other); }
 
     void reset() { this->m_data = {}; }
 
@@ -319,7 +278,7 @@ template <typename T>
 class Root
 {
 public:
-    Root(NewObject<T>&& obj)
+    Root(Node<T>&& obj)
         : m_root(std::move(obj))
     {
         m_detachedRoot = m_root.m_data.payload;

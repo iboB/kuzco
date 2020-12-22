@@ -113,7 +113,7 @@ struct SingleWriterTest
 
 TEST_CASE("Single writer")
 {
-    NewObject<Company> acme;
+    Node<Company> acme;
     acme->name = "ACME";
     acme->ceo->data = PersonData("Jane", 55);
     acme->ceo->department = "Management";

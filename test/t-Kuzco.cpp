@@ -136,41 +136,37 @@ TEST_SUITE_BEGIN("Kuzco");
 
 TEST_CASE("PersonData new object")
 {
-    NewObject<PersonData> s1;
+    Node<PersonData> s1;
     CHECK(s1->name.empty());
     CHECK(s1->age == 0);
-    auto p1 = s1.payload();
     CHECK(PersonData::dc == 1);
 
     s1->name = "Bob";
     CHECK(s1->name == "Bob");
-    CHECK(p1->name == "Bob");
 
-    NewObject<PersonData> s2("John", 34);
+    Node<PersonData> s2("John", 34);
     CHECK(s2->name == "John");
     CHECK(s2->age == 34);
     CHECK(PersonData::dc == 2);
 
     s1 = PersonData("Alice", 55);
     CHECK(PersonData::dc == 3);
-    CHECK(PersonData::mc == 1);
+    CHECK(PersonData::ma == 1);
     CHECK(s1->name == "Alice");
     CHECK(s1->age == 55);
-    CHECK(p1 != s1.payload());
-    CHECK(p1->name == "Bob");
 
-    CHECK(PersonData::alive == 3);
+    CHECK(PersonData::alive == 2);
     CHECK(PersonData::dc == 3);
     CHECK(PersonData::cc == 0);
-    CHECK(PersonData::mc == 1);
+    CHECK(PersonData::mc == 0);
     CHECK(PersonData::ca == 0);
-    CHECK(PersonData::ma == 0);
+    CHECK(PersonData::ma == 1);
 
     clearAllCounters();
 
     CHECK(PersonData::alive == 0);
     CHECK(PersonData::dc == 0);
-    CHECK(PersonData::mc == 0);
+    CHECK(PersonData::ma == 0);
 }
 
 TEST_CASE("New object with nodes")
@@ -178,7 +174,7 @@ TEST_CASE("New object with nodes")
     clearAllCounters();
 
     // if we only edit leaves, there should be no clones whatsoever
-    NewObject<Pair> p;
+    Node<Pair> p;
     CHECK(LC<Pair>::alive == 1);
     CHECK(LC<Pair>::dc == 1);
     CHECK(LC<Employee>::alive == 2);
@@ -250,7 +246,7 @@ TEST_CASE("New object with nodes")
     CHECK(LC<PersonData>::ca == 0);
     CHECK(LC<PersonData>::ma == 0);
 
-    NewObject<Employee> c;
+    Node<Employee> c;
     c->data->name = "Charlie";
     c->data->age = 22;
     c->department = std::string("front desk");
@@ -279,7 +275,7 @@ TEST_CASE("New object with nodes")
 TEST_CASE("Variable objects")
 {
     clearAllCounters();
-    NewObject<Company> acme;
+    Node<Company> acme;
     acme->staff.resize(2);
 
     CHECK(LC<Employee>::alive == 2);
@@ -300,7 +296,7 @@ TEST_CASE("Variable objects")
 
     CHECK(!acme->cto);
 
-    acme->cto = NewObject<Boss>();
+    acme->cto = Node<Boss>();
 
     CHECK(LC<Boss>::alive == 2);
     CHECK(LC<Boss>::dc == 2);
@@ -318,7 +314,7 @@ TEST_CASE("Variable objects")
 TEST_CASE("Basic state")
 {
     clearAllCounters();
-    Root root = NewObject<Pair>{};
+    Root root = Node<Pair>{};
 
     auto pre = root.detach();
 
@@ -348,7 +344,7 @@ TEST_CASE("Basic state")
 TEST_CASE("Complex state")
 {
     clearAllCounters();
-    Root root = NewObject<Company>{};
+    Root root = Node<Company>{};
     CHECK(LC<Company>::alive == 1);
     CHECK(LC<Company>::dc == 1);
     CHECK(LC<Company>::cc == 0);
@@ -399,7 +395,7 @@ TEST_CASE("Complex state")
 TEST_CASE("Interstate exchange")
 {
     clearAllCounters();
-    NewObject<Company> no;
+    Node<Company> no;
 
     CHECK(Company::alive == 1);
     CHECK(Company::dc == 1);
@@ -425,7 +421,7 @@ TEST_CASE("Interstate exchange")
     CHECK(PersonData::dc == 2);
     CHECK(PersonData::cc == 0);
 
-    NewObject<Boss> boss = *root.detach()->ceo;
+    Node<Boss> boss = *root.detach()->ceo;
 
     CHECK(Company::alive == 1);
     CHECK(Company::dc == 1);
@@ -466,10 +462,10 @@ TEST_CASE("Interstate exchange")
     CHECK(Boss::dc == 1);
     CHECK(Boss::cc == 1);
 
-    Root other = NewObject<Company>{};
+    Root other = Node<Company>{};
 
     t = other.beginTransaction();
-    t->ceo = NewObject<Boss>(*root.detach()->ceo);
+    t->ceo = Node<Boss>(*root.detach()->ceo);
     other.endTransaction();
 
     CHECK(Company::alive == 2);
