@@ -35,9 +35,9 @@ public:
     using reference = typename Wrapped::reference;
     using const_reference = typename Wrapped::const_reference;
 
-    const size_t size() const { return this->get()->size(); }
-    const size_t capacity() const { return this->get()->capacity(); }
-    const bool empty() const { return this->get()->empty(); }
+    size_t size() const { return this->get()->size(); }
+    size_t capacity() const { return this->get()->capacity(); }
+    bool empty() const { return this->get()->empty(); }
 
     pointer data() { return this->get()->data(); }
     const_pointer data() const { return this->get()->data(); }
@@ -67,7 +67,7 @@ public:
     template <typename... Fwd>
     void assign(Fwd&&... fwd)
     {
-        if (!unique())
+        if (!this->unique())
         {
             auto newVec = impl::Data<Wrapped>::construct(std::forward<Fwd>(fwd)...);
             this->replaceWith(std::move(newVec));
@@ -80,7 +80,7 @@ public:
 
     void assign(std::initializer_list<value_type> ilist)
     {
-        if (!unique())
+        if (!this->unique())
         {
             auto newVec = impl::Data<Wrapped>::construct(ilist);
             this->replaceWith(std::move(newVec));
@@ -93,7 +93,7 @@ public:
 
     iterator insert(const_iterator pos, const value_type& val)
     {
-        if (!unique())
+        if (!this->unique())
         {
             inserter i(*this, pos, 1);
             return i.v().insert(i.v().end(), val);
@@ -106,7 +106,7 @@ public:
 
     iterator insert(const_iterator pos, std::initializer_list<value_type> ilist)
     {
-        if (!unique())
+        if (!this->unique())
         {
             inserter i(*this, pos, ilist.size());
             return i.v().insert(i.v().end(), ilist);
@@ -119,7 +119,7 @@ public:
 
     iterator erase(const_iterator pos)
     {
-        if (!unique())
+        if (!this->unique())
         {
             return shrink(pos, 1);
         }
@@ -131,7 +131,7 @@ public:
 
     iterator erase(const_iterator b, const_iterator e)
     {
-        if (!unique())
+        if (!this->unique())
         {
             return shrink(b, e-b);
         }
@@ -143,7 +143,7 @@ public:
 
     void reserve(size_type cap)
     {
-        if (!unique())
+        if (!this->unique())
         {
             auto oldVec = this->qget();
             if (oldVec->capacity() >= cap) return; // nothing to do
@@ -161,7 +161,7 @@ public:
     void resize(size_type count)
     {
         auto oldVec = this->qget();
-        if (!unique())
+        if (!this->unique())
         {
             if (oldVec->size() == count) return; // nothing to do
             auto newVec = impl::Data<Wrapped>::construct();
@@ -186,7 +186,7 @@ public:
     void resize(size_type count, const value_type& val)
     {
         auto oldVec = this->qget();
-        if (!unique())
+        if (!this->unique())
         {
             if (oldVec->size() == count) return; // nothing to do
             auto newVec = impl::Data<Wrapped>::construct();
@@ -210,7 +210,7 @@ public:
 
     void clear()
     {
-        if (!unique())
+        if (!this->unique())
         {
             auto newVec = impl::Data<Wrapped>::construct();
             this->replaceWith(std::move(newVec));
@@ -237,7 +237,7 @@ public:
     void pop_back()
     {
         auto oldVec = this->qget();
-        if (!unique())
+        if (!this->unique())
         {
             auto newVec = impl::Data<Wrapped>::construct();
             newVec.qdata->assign(oldVec->begin(), oldVec->end() - 1);
@@ -253,7 +253,7 @@ private:
     // used by push/emplace_back()
     void prepare_add_one()
     {
-        if (unique()) return;
+        if (this->unique()) return;
 
         inserter i(*this, this->qget()->cend(), 1);
     }
@@ -300,7 +300,7 @@ private:
         v.assign(oldVec->cbegin(), pos);
         v.insert(v.end(), pos + by, oldVec->cend());
         auto ret = v.begin() + (pos - oldVec->cbegin());
-        replaceWith(std::move(newVec));
+        this->replaceWith(std::move(newVec));
         return ret;
     }
 

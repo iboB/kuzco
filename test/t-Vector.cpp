@@ -8,6 +8,7 @@
 #include <kuzco/Vector.hpp>
 #include "doctest.hpp"
 
+#include <cstring>
 #include <string>
 
 TEST_SUITE_BEGIN("Kuzco vector");
@@ -206,8 +207,8 @@ public:
         return Transaction(*this);
     }
 
-    using Root<VecState<T>>::detach;
-    using Root<VecState<T>>::detachedPayload;
+    using kuzco::Root<VecState<T>>::detach;
+    using kuzco::Root<VecState<T>>::detachedPayload;
 };
 
 TEST_CASE("State vector")
