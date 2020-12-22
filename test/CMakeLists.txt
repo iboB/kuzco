@@ -3,11 +3,19 @@ add_library(doctest STATIC
     doctest_main.cpp
 )
 
-add_executable(test-kuzco
+macro(add_kuzco_test name)
+    set(tname test-kuzco-${name})
+    add_executable(${tname} ${ARGN})
+    target_link_libraries(${tname} kuzco doctest)
+    set_target_properties(${tname} PROPERTIES FOLDER test)
+    add_test(NAME ${name} COMMAND ${tname})
+endmacro()
+
+add_kuzco_test(core
     t-Data.cpp
     t-Kuzco.cpp
     t-MT.cpp
-    t-Vector.cpp
 )
-target_link_libraries(test-kuzco kuzco doctest)
-add_test(NAME kuzco COMMAND test-kuzco)
+
+add_kuzco_test(vector t-Vector.cpp)
+
