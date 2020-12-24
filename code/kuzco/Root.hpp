@@ -63,9 +63,6 @@ public:
 private:
     using PL = typename impl::Data<T>::Payload;
 
-    // safe even during a transaction
-    PL detachedRoot() const;
-
     Node<T> m_root;
 
     std::mutex m_transactionMutex;
