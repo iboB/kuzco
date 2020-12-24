@@ -5,7 +5,7 @@
 // See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/MIT
 //
-#include <kuzco/Kuzco.hpp>
+#include <kuzco/Root.hpp>
 
 #include <doctest/doctest.h>
 

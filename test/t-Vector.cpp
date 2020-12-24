@@ -5,8 +5,10 @@
 // See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/MIT
 //
-#include <kuzco/Vector.hpp>
 #include <doctest/doctest.h>
+
+#include <kuzco/Root.hpp>
+#include <kuzco/Vector.hpp>
 
 #include <cstring>
 #include <string>
