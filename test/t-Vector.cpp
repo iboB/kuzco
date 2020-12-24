@@ -6,7 +6,7 @@
 // https://opensource.org/licenses/MIT
 //
 #include <kuzco/Vector.hpp>
-#include "doctest.hpp"
+#include <doctest/doctest.h>
 
 #include <cstring>
 #include <string>

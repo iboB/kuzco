@@ -7,7 +7,7 @@
 //
 #include <kuzco/Kuzco.hpp>
 
-#include "doctest.hpp"
+#include <doctest/doctest.h>
 
 #include <string_view>
 
