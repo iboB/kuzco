@@ -7,7 +7,7 @@
 //
 #pragma once
 
-#include "Kuzco.hpp"
+#include "Node.hpp"
 
 namespace kuzco
 {
