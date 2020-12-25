@@ -1,3 +1,0 @@
-[submodule "test/doctest-lib"]
-	path = test/doctest-lib
-	url = https://github.com/iboB/doctest-lib.git
