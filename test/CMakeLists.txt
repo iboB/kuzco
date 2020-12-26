@@ -1,11 +1,23 @@
-add_subdirectory(doctest-lib)
+cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
-macro(add_kuzco_test name)
-    set(tname test-kuzco-${name})
-    add_executable(${tname} ${ARGN})
-    target_link_libraries(${tname} kuzco doctest-main)
-    set_target_properties(${tname} PROPERTIES FOLDER test)
-    add_test(NAME ${name} COMMAND ${tname})
+include(./get_cpm.cmake)
+
+CPMAddPackage(
+    NAME icm
+    GITHUB_REPOSITORY iboB/icm
+    VERSION 1.1.0
+)
+
+CPMAddPackage(
+    NAME doctest-lib
+    GITHUB_REPOSITORY iboB/doctest-lib
+    GIT_TAG 2.4.3b
+)
+
+include(${icm_SOURCE_DIR}/icm_testing.cmake)
+
+macro(add_kuzco_test test)
+    icm_add_doctest_lib_test(${test} kuzco ${ARGN})
 endmacro()
 
 add_kuzco_test(core
