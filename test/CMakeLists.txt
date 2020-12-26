@@ -5,13 +5,19 @@ include(./get_cpm.cmake)
 CPMAddPackage(
     NAME icm
     GITHUB_REPOSITORY iboB/icm
-    VERSION 1.1.0
+    VERSION 1.1.1
 )
 
 CPMAddPackage(
     NAME doctest-lib
     GITHUB_REPOSITORY iboB/doctest-lib
     GIT_TAG 2.4.3b
+)
+
+CPMAddPackage(
+    NAME xec
+    GITHUB_REPOSITORY iboB/xec
+    VERSION 1.0.0
 )
 
 include(${icm_SOURCE_DIR}/icm_testing.cmake)
@@ -28,3 +34,6 @@ add_kuzco_test(core
 
 add_kuzco_test(vector t-Vector.cpp)
 
+add_kuzco_test(pubsub t-PubSub.cpp
+    LIBRARIES xec
+)
