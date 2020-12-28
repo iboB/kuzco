@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Vector.hpp"
+#include "NodeRef.hpp"
 
 namespace kuzco
 {
@@ -23,20 +24,20 @@ public:
     using Super::size;
     using Super::empty;
 
-    using Super::const_iterator;
+    using typename Super::const_iterator;
     const_iterator begin() const { return Super::begin(); }
     const_iterator end() const { return Super::end(); }
     using Super::cbegin;
     using Super::cend;
 
-    using Super::const_reverse_iterator;
+    using typename Super::const_reverse_iterator;
     const_reverse_iterator rbegin() const { return Super::rbegin(); }
     const_reverse_iterator rend() const { return Super::rend(); }
     using Super::crbegin;
     using Super::crend;
 
-    using Super::value_type;
-    using Super::size_type;
+    using typename Super::value_type;
+    using typename Super::size_type;
     const value_type& operator[](size_type i) const { return Super::operator[](i); }
 
     using Super::assign;
@@ -50,18 +51,17 @@ public:
     // item mutators
     value_type& modify(size_type i) { return Super::operator[](i); }
 
-    using Super::iterator;
     template <typename Pred>
-    ??? find_if(Pred f)
+    NodeRef<T> find_if(Pred f)
     {
-        for (auto i = begin(); i != end(); ++i)
+        for (auto i = Super::begin(); i != Super::end(); ++i)
         {
-            if (f(*i))
+            if (f(*i->r()))
             {
-                return *i;
+                return NodeRef<T>(*i);
             }
         }
-        return end();
+        return {};
     }
 };
 

@@ -34,6 +34,7 @@ add_kuzco_test(core
 )
 
 add_kuzco_test(vector t-Vector.cpp)
+add_kuzco_test(node-vector t-NodeVector.cpp)
 
 add_kuzco_test(pubsub t-PubSub.cpp
     LIBRARIES xec
