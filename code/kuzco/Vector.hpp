@@ -15,7 +15,7 @@ namespace kuzco
 {
 
 template <typename WrappedVector>
-class VectorImpl : public Node<WrappedVector>
+class VectorImpl : private Node<WrappedVector>
 {
 public:
     using Super = Node<WrappedVector>;
@@ -305,9 +305,6 @@ private:
         this->replaceWith(std::move(newVec));
         return ret;
     }
-
-    using Super::operator*;
-    using Super::operator->;
 };
 
 template <typename WrappedVector>
