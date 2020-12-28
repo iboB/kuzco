@@ -8,12 +8,17 @@
 #include <doctest/doctest.h>
 
 #include <kuzco/Root.hpp>
-#include <kuzco/Vector.hpp>
+#include <kuzco/StdVector.hpp>
 
 #include <cstring>
 #include <string>
 
 TEST_SUITE_BEGIN("Kuzco vector");
+
+TEST_CASE("VectorImpl of node compiles")
+{
+    kuzco::VectorImpl<std::vector<kuzco::Node<int>>> foo;
+}
 
 template <template<typename> class State>
 void testState()
@@ -150,12 +155,9 @@ void testState()
 }
 
 template <typename T>
-using TVec = kuzco::Vector<std::vector<T>>;
-
-template <typename T>
 struct VecState
 {
-    TVec<T> vec;
+    kuzco::StdVector<T> vec;
 };
 
 template <typename T>
