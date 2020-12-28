@@ -9,11 +9,13 @@
 
 #include "Node.hpp"
 
+#include "impl/instanse_of.hpp"
+
 namespace kuzco
 {
 
 template <typename WrappedVector>
-class Vector : public Node<WrappedVector>
+class VectorImpl : public Node<WrappedVector>
 {
 public:
     using Super = Node<WrappedVector>;
@@ -261,7 +263,7 @@ private:
     // used by insert/emplace
     struct inserter
     {
-        inserter(Vector& b, typename Wrapped::const_iterator pos, size_type count)
+        inserter(VectorImpl& b, typename Wrapped::const_iterator pos, size_type count)
             : m_v(b)
             , m_oldVec(b.qget())
             , m_pos(pos)
@@ -283,7 +285,7 @@ private:
             return *m_newVec.qdata;
         }
 
-        Vector& m_v;
+        VectorImpl& m_v;
         Wrapped* m_oldVec;
         typename Wrapped::const_iterator m_pos;
         size_type m_count;
@@ -306,6 +308,16 @@ private:
 
     using Super::operator*;
     using Super::operator->;
+};
+
+template <typename WrappedVector>
+class Vector : public VectorImpl<WrappedVector>
+{
+public:
+    static_assert(!impl::instance_of_v<kuzco::Node, typename WrappedVector::value_type>, "Vectors of nodes are unsafe.");
+    using Super = VectorImpl<WrappedVector>;
+    using Super::VectorImpl;
+    using Super::operator=;
 };
 
 }
