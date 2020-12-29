@@ -174,7 +174,7 @@ public:
     T* operator->() { return get(); }
     T& operator*() { return *get(); }
 
-    Detached<T> detach() const { return Detached(this->payload()); }
+    Detached<std::remove_const_t<T>> detach() const { return Detached(this->payload()); }
 };
 
 template <typename T>
@@ -248,7 +248,7 @@ public:
     T* operator->() { return get(); }
     T& operator*() { return *get(); }
 
-    OptDetached<T> detach() const { return OptDetached(this->payload()); }
+    OptDetached<std::remove_const_t<T>> detach() const { return OptDetached(this->payload()); }
 };
 
 // shallow comparisons
