@@ -151,7 +151,7 @@ public:
     //}
 
     Node(Node&& other) noexcept { this->takeData(other); }
-    Node& operator=(Node&& other) { this->checkedReplace(other); return *this; }
+    Node& operator=(Node&& other) noexcept { this->checkedReplace(other); return *this; }
 
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Node& operator=(U&& u)
@@ -224,10 +224,10 @@ public:
     OptNode& operator=(const OptNode&) = delete;
 
     OptNode(OptNode&& other) noexcept { this->takeData(other); }
-    OptNode& operator=(OptNode&& other) { this->checkedReplace(other); return *this; }
+    OptNode& operator=(OptNode&& other) noexcept { this->checkedReplace(other); return *this; }
 
     OptNode(std::nullptr_t) noexcept {} // nothing special to do
-    OptNode& operator=(std::nullptr_t) { this->m_data = {}; return *this; }
+    OptNode& operator=(std::nullptr_t) noexcept { this->m_data = {}; return *this; }
 
     OptNode(Node<T>&& other) noexcept { this->takeData(other); }
 
