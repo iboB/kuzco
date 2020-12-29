@@ -252,6 +252,8 @@ public:
     }
 
 private:
+
+
     // used by push/emplace_back()
     void prepare_add_one()
     {
@@ -271,7 +273,7 @@ private:
             , m_newVec(impl::Data<Wrapped>::construct())
         {
             v().reserve(m_oldVec->size() + count);
-            v().assign(m_oldVec->cbegin(), pos);
+            v().insert(v().begin(), m_oldVec->cbegin(), pos);
         }
 
         ~inserter()
@@ -299,7 +301,7 @@ private:
         auto newVec = impl::Data<Wrapped>::construct();
         auto& v = *newVec.qdata;
         v.reserve(oldVec->size() - by);
-        v.assign(oldVec->cbegin(), pos);
+        v.insert(v.begin(), oldVec->cbegin(), pos);
         v.insert(v.end(), pos + by, oldVec->cend());
         auto ret = v.begin() + (pos - oldVec->cbegin());
         this->replaceWith(std::move(newVec));
