@@ -252,7 +252,15 @@ public:
     }
 
 private:
-
+    static void append_to(Wrapped& t, typename Wrapped::const_iterator sbegin, typename Wrapped::const_iterator send)
+    {
+        // unfortunately we can't use this line until https://bugs.llvm.org/show_bug.cgi?id=48619 is fixed
+        // t.insert(t.cend(), sbegin, send);
+        for (auto i = sbegin; i != send; ++i)
+        {
+            t.emplace_back(*i);
+        }
+    }
 
     // used by push/emplace_back()
     void prepare_add_one()
@@ -273,12 +281,12 @@ private:
             , m_newVec(impl::Data<Wrapped>::construct())
         {
             v().reserve(m_oldVec->size() + count);
-            v().insert(v().begin(), m_oldVec->cbegin(), pos);
+            append_to(v(), m_oldVec->cbegin(), pos);
         }
 
         ~inserter()
         {
-            v().insert(v().cend(), m_pos, m_oldVec->cend());
+            append_to(v(), m_pos, m_oldVec->cend());
             m_v.replaceWith(std::move(m_newVec));
         }
 
@@ -301,8 +309,8 @@ private:
         auto newVec = impl::Data<Wrapped>::construct();
         auto& v = *newVec.qdata;
         v.reserve(oldVec->size() - by);
-        v.insert(v.begin(), oldVec->cbegin(), pos);
-        v.insert(v.end(), pos + by, oldVec->cend());
+        append_to(v, oldVec->cbegin(), pos);
+        append_to(v, pos + by, oldVec->cend());
         auto ret = v.begin() + (pos - oldVec->cbegin());
         this->replaceWith(std::move(newVec));
         return ret;
