@@ -254,12 +254,15 @@ public:
 private:
     static void append_to(Wrapped& t, typename Wrapped::const_iterator sbegin, typename Wrapped::const_iterator send)
     {
-        // unfortunately we can't use this line until https://bugs.llvm.org/show_bug.cgi?id=48619 is fixed
-        // t.insert(t.cend(), sbegin, send);
+#if defined _MSC_VER
+        t.insert(t.cend(), sbegin, send);
+#else
+        // unfortunately we can't use the simpler gcc and clang until https://bugs.llvm.org/show_bug.cgi?id=48619 is fixed
         for (auto i = sbegin; i != send; ++i)
         {
             t.emplace_back(*i);
         }
+#endif
     }
 
     // used by push/emplace_back()
