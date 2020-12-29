@@ -45,6 +45,7 @@ public:
     using Super::resize;
     using Super::reserve;
     using Super::erase;
+    using Super::emplace_back;
     using Super::push_back;
     using Super::pop_back;
 
