@@ -64,7 +64,7 @@ TEST_SUITE_BEGIN("Kuzco");
 
 TEST_CASE("PersonData new object")
 {
-    Node<PersonData> s1;
+    auto s1 = New<PersonData>();
     CHECK(s1->name.empty());
     CHECK(s1->age == 0);
     CHECK(PersonData::dc == 1);
@@ -72,12 +72,12 @@ TEST_CASE("PersonData new object")
     s1->name = "Bob";
     CHECK(s1->name == "Bob");
 
-    Node<PersonData> s2("John", 34);
+    auto s2 = New<PersonData>("John", 34);
     CHECK(s2->name == "John");
     CHECK(s2->age == 34);
     CHECK(PersonData::dc == 2);
 
-    s1 = PersonData("Alice", 55);
+    *s1 = PersonData("Alice", 55);
     CHECK(PersonData::dc == 3);
     CHECK(PersonData::ma == 1);
     CHECK(s1->name == "Alice");

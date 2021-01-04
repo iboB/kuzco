@@ -120,6 +120,11 @@ public:
         // T construction. Object is unique implicitly
     }
 
+    explicit Node(impl::Data<T>&& data)
+    {
+        this->m_data = std::move(data);
+    }
+
     Node(const Node& other)
     {
         // here we always do a shallow copy
@@ -176,6 +181,18 @@ public:
 
     Detached<std::remove_const_t<T>> detach() const { return Detached(this->payload()); }
 };
+
+//template <typename T>
+//Node<T> New(T&& t)
+//{
+//    return Node<T>(impl::Data<T>::construct(std::forward<T>(t)));
+//}
+
+template <typename T, typename... Args, std::enable_if_t<std::is_constructible_v<T, Args...>, int> = 0>
+Node<T> New(Args&&... args)
+{
+    return Node<T>(impl::Data<T>::construct(std::forward<Args>(args)...));
+}
 
 template <typename T>
 class OptDetached
