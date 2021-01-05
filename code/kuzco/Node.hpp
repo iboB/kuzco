@@ -33,6 +33,13 @@ class BasicNode
 {
 public:
     std::shared_ptr<const T> payload() const { return m_data.payload; }
+
+    void attachTo(const BasicNode& n)
+    {
+        m_data = n.m_data;
+        m_unique = false; // attached nodes are not unique (obviously)
+    }
+
 protected:
     Data<T> m_data;
 
