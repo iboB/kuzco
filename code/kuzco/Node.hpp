@@ -27,22 +27,43 @@ class Root;
 namespace impl
 {
 
-// base class for nodes
 template <typename T>
-class BasicNode
+class DataHolder
 {
 public:
     std::shared_ptr<const T> payload() const { return m_data.payload; }
+    const T* qget() const { return this->m_data.qdata; }
 
+    // shallow comparisons
+    template <typename U>
+    bool operator==(const DataHolder<U>& b) const
+    {
+        return qget() == b.qget();
+    }
+
+    template <typename U>
+    bool operator!=(const DataHolder<U>& b) const
+    {
+        return qget() != b.qget();
+    }
+
+protected:
+    T* qget() { return this->m_data.qdata; }
+    impl::Data<T> m_data;
+};
+
+// base class for nodes
+template <typename T>
+class BasicNode : public DataHolder<T>
+{
+public:
     void attachTo(const BasicNode& n)
     {
-        m_data = n.m_data;
+        this->m_data = n.m_data;
         m_unique = false; // attached nodes are not unique (obviously)
     }
 
 protected:
-    Data<T> m_data;
-
     // returns if the object is unique and its data is safe to edit in place
     // if the we're working on new objects, we're unique since no one else has a pointer to it
     // if we're inisde a transaction, we check whether this same transaction has replaced the object already
@@ -62,7 +83,7 @@ protected:
     // take the data from another object and invalidate it
     void takeData(BasicNode& other)
     {
-        m_data = std::move(other.m_data);
+        this->m_data = std::move(other.m_data);
         other.m_data = {};
         m_unique = other.m_unique; // copy uniqueness
     }
@@ -71,7 +92,7 @@ protected:
     // only valid in a trasaction and if not unique
     void replaceWith(Data<T> data)
     {
-        m_data = std::move(data);
+        this->m_data = std::move(data);
         m_unique = true; // we're replaced so we're once more unique
     }
 
@@ -80,12 +101,10 @@ protected:
     // reassign data from other source
     void checkedReplace(BasicNode& other)
     {
-        if (unique()) m_data = std::move(other.m_data);
+        if (unique()) this->m_data = std::move(other.m_data);
         else replaceWith(std::move(other.m_data));
         other.m_data = {};
     }
-
-    T* qget() { return m_data.qdata; }
 
     friend class Root<T>;
 };
@@ -96,23 +115,18 @@ protected:
 // never null
 // has quick access to underlying data
 template <typename T>
-class Detached
+class Detached : public impl::DataHolder<const T>
 {
 public:
     Detached(std::shared_ptr<const T> payload)
-        : m_qdata(payload.get())
-        , m_payload(std::move(payload))
-    {}
+    {
+        this->m_data.qdata = payload.get();
+        this->m_data.payload = std::move(payload);
+    }
 
-    const T* get() const { return m_qdata; }
+    const T* get() const { return this->qget(); }
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
-
-    std::shared_ptr<const T> payload() const { return m_payload; }
-
-private:
-    const T* m_qdata;
-    std::shared_ptr<const T> m_payload;
 };
 
 
@@ -169,7 +183,7 @@ public:
     }
 
     const Node& r() const { return *this; }
-    const T* get() const { return this->m_data.qdata; }
+    const T* get() const { return this->qget(); }
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
 
@@ -185,33 +199,29 @@ public:
 };
 
 template <typename T>
-class OptDetached
+class OptDetached : public impl::DataHolder<const T>
 {
 public:
     OptDetached()
-        : m_qdata(nullptr)
     {}
 
     OptDetached(const Detached<T>& d)
-        : m_qdata(d.get())
-        , m_payload(d.payload())
-    {}
+    {
+        this->m_data.qdata = d.get();
+        this->m_data.payload = d.payload();
+    }
 
     OptDetached(std::shared_ptr<const T> payload)
-        : m_qdata(payload.get())
-        , m_payload(std::move(payload))
-    {}
+    {
+        this->m_data.qdata = payload.get();
+        this->m_data.payload = std::move(payload);
+    }
 
-    const T* get() const { return m_qdata; }
+    const T* get() const { return this->qget(); }
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
 
-    explicit operator bool() const { return !!m_qdata; }
-
-    std::shared_ptr<const T> payload() const { return m_payload; }
-private:
-    const T* m_qdata;
-    std::shared_ptr<const T> m_payload;
+    explicit operator bool() const { return !!m_data.qdata; }
 };
 
 template <typename T>
@@ -243,7 +253,7 @@ public:
     explicit operator bool() const { return !!this->m_data.qdata; }
 
     const OptNode& r() const { return *this; }
-    const T* get() const { return this->m_data.qdata; }
+    const T* get() const { return this->qget(); }
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
 
@@ -257,42 +267,5 @@ public:
 
     OptDetached<std::remove_const_t<T>> detach() const { return OptDetached(this->payload()); }
 };
-
-// shallow comparisons
-template <typename T>
-bool operator==(const Detached<T>& a, const Detached<T>& b)
-{
-    return a.get() == b.get();
-}
-
-template <typename T>
-bool operator!=(const Detached<T>& a, const Detached<T>& b)
-{
-    return a.get() != b.get();
-}
-
-template <typename T>
-bool operator==(const Detached<T>& a, const Node<T>& b)
-{
-    return a.get() == b.get();
-}
-
-template <typename T>
-bool operator!=(const Detached<T>& a, const Node<T>& b)
-{
-    return a.get() != b.get();
-}
-
-template <typename T>
-bool operator==(const Node<T>& a, const Node<T>& b)
-{
-    return a.get() == b.get();
-}
-
-template <typename T>
-bool operator!=(const Node<T>& a, const Node<T>& b)
-{
-    return a.get() != b.get();
-}
 
 } // namespace kuzco
