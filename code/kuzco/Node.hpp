@@ -221,7 +221,7 @@ public:
     const T* operator->() const { return get(); }
     const T& operator*() const { return *get(); }
 
-    explicit operator bool() const { return !!m_data.qdata; }
+    explicit operator bool() const { return !!this->m_data.qdata; }
 };
 
 template <typename T>
