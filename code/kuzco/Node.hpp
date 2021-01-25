@@ -199,6 +199,9 @@ public:
 };
 
 template <typename T>
+using Leaf = Node<const T>;
+
+template <typename T>
 class OptDetached : public impl::DataHolder<const T>
 {
 public:
@@ -267,5 +270,8 @@ public:
 
     OptDetached<std::remove_const_t<T>> detach() const { return OptDetached(this->payload()); }
 };
+
+template <typename T>
+using OptLeaf = OptNode<const T>;
 
 } // namespace kuzco
