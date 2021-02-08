@@ -11,13 +11,13 @@ CPMAddPackage(
 CPMAddPackage(
     NAME doctest-lib
     GITHUB_REPOSITORY iboB/doctest-lib
-    GIT_TAG 2.4.3b
+    GIT_TAG 2.4.4
 )
 
 CPMAddPackage(
     NAME xec
     GITHUB_REPOSITORY iboB/xec
-    VERSION 1.0.0
+    VERSION 1.1.0
 )
 
 include(${icm_SOURCE_DIR}/icm_testing.cmake)
