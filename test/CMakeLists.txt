@@ -5,7 +5,7 @@ include(./get_cpm.cmake)
 CPMAddPackage(
     NAME icm
     GITHUB_REPOSITORY iboB/icm
-    VERSION 1.1.1
+    VERSION 1.3.1
 )
 
 CPMAddPackage(
@@ -17,7 +17,7 @@ CPMAddPackage(
 CPMAddPackage(
     NAME xec
     GITHUB_REPOSITORY iboB/xec
-    VERSION 1.1.0
+    VERSION 1.1.1
 )
 
 include(${icm_SOURCE_DIR}/icm_testing.cmake)
