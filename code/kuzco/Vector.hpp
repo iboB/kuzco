@@ -15,15 +15,21 @@ namespace kuzco
 {
 
 template <typename WrappedVector>
-class VectorImpl : private Node<WrappedVector>
+class VectorImpl : public Node<WrappedVector>
 {
 public:
     using Super = Node<WrappedVector>;
+    using Wrapped = WrappedVector;
+private:
+    // hide these dangerous accessors
+    using Super::get;
+    using Super::operator*;
+    using Super::operator->;
+public:
     using Super::Node;
 
-    using Wrapped = WrappedVector;
-
-    using Super::operator=;
+    // allow this so we can pass the vector to workers as a vector
+    const Wrapped& operator*() const { return get(); }
 
     // std::vector-like
     using value_type = typename Wrapped::value_type;

@@ -219,3 +219,28 @@ TEST_CASE("State vector")
 {
     testState<State>();
 }
+
+TEST_CASE("Compare")
+{
+    kuzco::StdVector<int> v1, v2;
+
+    v1.assign({1, 2, 3});
+    v2.assign({1, 2, 3});
+
+    auto v3 = v1;
+
+    CHECK(v1 != v2);
+    CHECK(v1 == v3);
+
+    auto d1 = v1.detach();
+    auto d2 = v2.detach();
+    auto d3 = v3.detach();
+
+    CHECK(d1 != d2);
+    CHECK(*d1 == *d2);
+    CHECK(d1 == d3);
+
+    CHECK(d1 == v1);
+    CHECK(d2 == v2);
+    CHECK(d3 == v3);
+}

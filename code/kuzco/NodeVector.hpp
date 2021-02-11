@@ -14,40 +14,32 @@ namespace kuzco
 {
 
 template <typename T, template <typename...> class WrappedVector>
-class NodeVector : private VectorImpl<WrappedVector<Node<T>>>
+class NodeVector : public VectorImpl<WrappedVector<Node<T>>>
 {
 public:
     using Super = VectorImpl<WrappedVector<Node<T>>>;
     using Super::VectorImpl;
-    using Super::operator=;
-
-    using Super::size;
-    using Super::empty;
-
-    using typename Super::const_iterator;
-    const_iterator begin() const { return Super::begin(); }
-    const_iterator end() const { return Super::end(); }
-    using Super::cbegin;
-    using Super::cend;
-
-    using typename Super::const_reverse_iterator;
-    const_reverse_iterator rbegin() const { return Super::rbegin(); }
-    const_reverse_iterator rend() const { return Super::rend(); }
-    using Super::crbegin;
-    using Super::crend;
 
     using typename Super::value_type;
     using typename Super::size_type;
-    const value_type& operator[](size_type i) const { return Super::operator[](i); }
+    using typename Super::const_iterator;
+    using typename Super::const_reverse_iterator;
+    using typename Super::const_reference;
 
-    using Super::assign;
-    using Super::insert;
-    using Super::resize;
-    using Super::reserve;
-    using Super::erase;
-    using Super::emplace_back;
-    using Super::push_back;
-    using Super::pop_back;
+private:
+    // hide dangerous accessors
+    using Super::operator*;
+    using Super::data;
+public:
+
+    // hide non const versions of these
+    const_iterator begin() const { return Super::begin(); }
+    const_iterator end() const { return Super::end(); }
+    const_reverse_iterator rbegin() const { return Super::rbegin(); }
+    const_reverse_iterator rend() const { return Super::rend(); }
+    const value_type& operator[](size_type i) const { return Super::operator[](i); }
+    const_reference front() const { return Super::front(); }
+    const_reference back() const { return Super::back(); }
 
     // item mutators
     value_type& modify(size_type i) { return Super::operator[](i); }
