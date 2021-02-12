@@ -28,7 +28,6 @@ public:
 
 private:
     // hide dangerous accessors
-    using Super::operator*;
     using Super::data;
 public:
 
