@@ -27,6 +27,7 @@ public:
     Root(const Node<T>& obj)
     {
         m_root.attachTo(obj);
+        m_detachedRoot = m_root.m_data.payload;
     }
 
     Root(const Root&) = delete;
