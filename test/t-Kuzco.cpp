@@ -11,6 +11,8 @@
 
 #include <string_view>
 
+#include <vector>
+
 TEST_SUITE_BEGIN("Kuzco Objects");
 
 using namespace kuzco;

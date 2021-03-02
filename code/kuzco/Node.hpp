@@ -9,7 +9,6 @@
 
 #include "impl/Data.hpp"
 
-#include <vector>
 #include <type_traits>
 
 namespace kuzco
@@ -31,6 +30,8 @@ template <typename T>
 class DataHolder
 {
 public:
+    using Type = T;
+
     std::shared_ptr<const T> payload() const { return m_data.payload; }
     const T* qget() const { return this->m_data.qdata; }
 
@@ -205,8 +206,7 @@ template <typename T>
 class OptDetached : public impl::DataHolder<const T>
 {
 public:
-    OptDetached()
-    {}
+    OptDetached() = default;
 
     OptDetached(const Detached<T>& d)
     {
