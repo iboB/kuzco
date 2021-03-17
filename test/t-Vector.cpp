@@ -230,6 +230,7 @@ TEST_CASE("Compare")
     auto v3 = v1;
 
     CHECK(v1 != v2);
+    CHECK(*v1 == *v2);
     CHECK(v1 == v3);
 
     auto d1 = v1.detach();

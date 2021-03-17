@@ -23,13 +23,12 @@ public:
 private:
     // hide these dangerous accessors
     using Super::get;
-    using Super::operator*;
     using Super::operator->;
 public:
     using Super::Node;
 
     // allow this so we can pass the vector to workers as a vector
-    const Wrapped& operator*() const { return get(); }
+    const Wrapped& operator*() const { return *get(); }
 
     // std::vector-like
     using value_type = typename Wrapped::value_type;
