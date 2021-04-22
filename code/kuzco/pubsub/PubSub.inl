@@ -32,6 +32,7 @@ std::vector<typename Publisher<T>::ActiveSub> Publisher<T>::getSubs()
         if (!lock) return true;
         auto& active = subs.emplace_back();
         active.subscriberPayload = std::move(lock);
+        active.subscriberPtr = data.subscriberPtr;
         active.notifyFunction = data.notifyFunction;
         return false;
     }), m_subs.end());
@@ -52,7 +53,7 @@ auto find(Vec& vec, const std::shared_ptr<void>& payload)
 template <typename T>
 void Publisher<T>::addSubscriber(std::shared_ptr<Subscriber<T>> sub)
 {
-    internalAddSub({std::move(sub), [](void* ptr, const T& t) {
+    internalAddSub({sub, sub.get(), [](void* ptr, const T& t) {
         auto rsub = static_cast<Subscriber<T>*>(ptr);
         rsub->notify(t);
     }});
@@ -67,6 +68,7 @@ void Publisher<T>::internalAddSub(ActiveSub active)
 
     auto& data = m_subs.emplace_back();
     data.subscriberPayload = std::move(active.subscriberPayload);
+    data.subscriberPtr = active.subscriberPtr;
     data.notifyFunction = active.notifyFunction;
 }
 
@@ -84,7 +86,7 @@ void Publisher<T>::notifySubscribers(const T& t)
     auto subs = getSubs();
     for (auto& s : subs)
     {
-        s.notifyFunction(s.subscriberPayload.get(), t);
+        s.notifyFunction(s.subscriberPtr, t);
     }
 }
 

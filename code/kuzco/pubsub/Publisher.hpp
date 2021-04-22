@@ -37,7 +37,7 @@ public:
 #if defined(_MSC_VER)
         static_assert(Method != nullptr);
 #endif
-        internalAddSub({payload, [](void* ptr, const T& t) {
+        internalAddSub({payload, payload.get(), [](void* ptr, const T& t) {
             auto rsub = static_cast<Class*>(ptr);
             (rsub->*Method)(t);
         }});
@@ -51,6 +51,7 @@ private:
     struct ActiveSub
     {
         std::shared_ptr<void> subscriberPayload;
+        void* subscriberPtr;
         NotifyFunction notifyFunction;
     };
     std::vector<ActiveSub> getSubs();
@@ -59,6 +60,7 @@ private:
     struct SubData
     {
         std::weak_ptr<void> subscriberPayload;
+        void* subscriberPtr;
         NotifyFunction notifyFunction;
     };
     std::vector<SubData> m_subs;
