@@ -34,6 +34,7 @@ public:
     template <typename Class, void (Class::*Method)(const T&)>
     void addGenericSubscriber(std::shared_ptr<Class> payload)
     {
+        static_assert(Method != nullptr);
         internalAddSub({payload, [](void* ptr, const T& t) {
             auto rsub = static_cast<Class*>(ptr);
             (rsub->*Method)(t);
