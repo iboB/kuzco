@@ -52,7 +52,6 @@ auto find(Vec& vec, const std::shared_ptr<void>& payload)
 template <typename T>
 void Publisher<T>::addSubscriber(std::shared_ptr<Subscriber<T>> sub)
 {
-    std::lock_guard l(m_subsMutex);
     internalAddSub({std::move(sub), [](void* ptr, const T& t) {
         auto rsub = static_cast<Subscriber<T>*>(ptr);
         rsub->notify(t);
@@ -62,6 +61,7 @@ void Publisher<T>::addSubscriber(std::shared_ptr<Subscriber<T>> sub)
 template <typename T>
 void Publisher<T>::internalAddSub(ActiveSub active)
 {
+    std::lock_guard l(m_subsMutex);
     auto f = find(m_subs, active.subscriberPayload);
     if (f != m_subs.end()) return;
 
