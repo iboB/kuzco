@@ -160,10 +160,10 @@ TEST_CASE("straight-forward") {
     {
         StringOfTheDay sod;
         sod.addSubscriber(b);
-        sod.addGenericSubscriber<Knowitall, &Knowitall::onString>(k);
+        sod.addSubscriber<Knowitall, &Knowitall::onString>(k);
         NumberOfTheDay nod;
         nod.addSubscriber(n);
-        nod.addGenericSubscriber<Knowitall, &Knowitall::onNumberOfTheDay>(k);
+        nod.addSubscriber<Knowitall, &Knowitall::onNumberOfTheDay>(k);
 
         std::atomic_bool go = {};
         std::thread stringPusher([&go, &sod]() {
@@ -197,10 +197,10 @@ TEST_CASE("deaths")
     StringOfTheDay sod;
     sod.addSubscriber(b);
     sod.addSubscriber(b2);
-    sod.addGenericSubscriber<Knowitall, &Knowitall::onString>(k);
+    sod.addSubscriber<Knowitall, &Knowitall::onString>(k);
     NumberOfTheDay nod;
     nod.addSubscriber(n);
-    nod.addGenericSubscriber<Knowitall, &Knowitall::onNumberOfTheDay>(k);
+    nod.addSubscriber<Knowitall, &Knowitall::onNumberOfTheDay>(k);
 
     std::atomic_bool go = {};
     std::thread stringPusher([&go, &sod, b]() {

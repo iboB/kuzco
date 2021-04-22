@@ -32,7 +32,7 @@ public:
     void removeSubscriber(std::shared_ptr<void> sub);
 
     template <typename Class, void (Class::*Method)(const T&)>
-    void addGenericSubscriber(std::shared_ptr<Class> payload)
+    void addSubscriber(std::shared_ptr<Class> payload)
     {
 #if defined(_MSC_VER)
         static_assert(Method != nullptr);
