@@ -34,10 +34,22 @@ public:
     void notifySubscribers(const T& t);
 
 private:
-    std::vector<std::shared_ptr<Subscriber<T>>> getSubs();
+    using NotifyFunction = void (*)(void*, const T& t);
+
+    struct ActiveSub
+    {
+        std::shared_ptr<void> subscriberPayload;
+        NotifyFunction notifyFunction;
+    };
+    std::vector<ActiveSub> getSubs();
 
     std::mutex m_subsMutex;
-    std::vector<std::weak_ptr<Subscriber<T>>> m_subs;
+    struct SubData
+    {
+        std::weak_ptr<void> subscriberPayload;
+        NotifyFunction notifyFunction;
+    };
+    std::vector<SubData> m_subs;
 };
 
 } // namespace kuzco

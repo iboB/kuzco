@@ -21,16 +21,18 @@ template <typename T>
 Publisher<T>::~Publisher() = default;
 
 template <typename T>
-std::vector<std::shared_ptr<Subscriber<T>>> Publisher<T>::getSubs()
+std::vector<typename Publisher<T>::ActiveSub> Publisher<T>::getSubs()
 {
     std::lock_guard l(m_subsMutex);
     // use this opportunity to erase invalid subscribers
-    std::vector<std::shared_ptr<Subscriber<T>>> subs;
+    std::vector<ActiveSub> subs;
     subs.reserve(m_subs.size());
-    m_subs.erase(std::remove_if(m_subs.begin(), m_subs.end(), [&subs](const auto& ptr) {
-        auto lock = ptr.lock();
+    m_subs.erase(std::remove_if(m_subs.begin(), m_subs.end(), [&subs](const auto& data) {
+        auto lock = data.subscriberPayload.lock();
         if (!lock) return true;
-        subs.emplace_back(std::move(lock));
+        auto& active = subs.emplace_back();
+        active.subscriberPayload = std::move(lock);
+        active.notifyFunction = data.notifyFunction;
         return false;
     }), m_subs.end());
     return subs;
@@ -38,11 +40,11 @@ std::vector<std::shared_ptr<Subscriber<T>>> Publisher<T>::getSubs()
 
 namespace
 {
-template <typename Vec, typename T> // templated by constness
-auto find(Vec& vec, const std::shared_ptr<Subscriber<T>>& sub)
+template <typename Vec> // templated by constness
+auto find(Vec& vec, const std::shared_ptr<void>& payload)
 {
-    return std::find_if(vec.begin(), vec.end(), [&sub](const auto& ptr) {
-        return !ptr.owner_before(sub) && !sub.owner_before(ptr);
+    return std::find_if(vec.begin(), vec.end(), [&payload](const auto& data) {
+        return !data.subscriberPayload.owner_before(payload) && !payload.owner_before(data.subscriberPayload);
     });
 }
 }
@@ -51,9 +53,16 @@ template <typename T>
 void Publisher<T>::addSubscriber(std::shared_ptr<Subscriber<T>> sub)
 {
     std::lock_guard l(m_subsMutex);
-    auto f = find(m_subs, sub);
+    std::shared_ptr<void> payload = sub;
+    auto f = find(m_subs, payload);
     if (f != m_subs.end()) return;
-    m_subs.emplace_back(std::move(sub));
+
+    auto& data = m_subs.emplace_back();
+    data.subscriberPayload = std::move(payload);
+    data.notifyFunction = [](void* ptr, const T& t) {
+        auto rsub = static_cast<Subscriber<T>*>(ptr);
+        rsub->notify(t);
+    };
 }
 
 template <typename T>
@@ -70,7 +79,7 @@ void Publisher<T>::notifySubscribers(const T& t)
     auto subs = getSubs();
     for (auto& s : subs)
     {
-        s->notify(t);
+        s.notifyFunction(s.subscriberPayload.get(), t);
     }
 }
 
