@@ -104,21 +104,21 @@ public:
     xec::ThreadExecution m_execution;
 };
 
-class Knowitall final : public Subscriber<NumberOfTheDay>, public Subscriber<std::string>, public xec::ExecutorBase
+class Knowitall final : public xec::ExecutorBase
 {
 public:
     Knowitall() : m_execution(*this) {
         m_execution.launchThread();
     }
 
-    virtual void notify(const NumberOfTheDay& nd) override {
+    void onNumberOfTheDay(const NumberOfTheDay& nd) {
         ++m_totalNotifys;
         std::lock_guard l(m_dataMutex);
         m_num = nd.get();
         wakeUpNow();
     }
 
-    virtual void notify(const std::string& s) override {
+    void onString(const std::string& s) {
         ++m_totalNotifys;
         std::lock_guard l(m_dataMutex);
         CHECK(m_string < s);
@@ -160,10 +160,10 @@ TEST_CASE("straight-forward") {
     {
         StringOfTheDay sod;
         sod.addSubscriber(b);
-        sod.addSubscriber(k);
+        sod.addGenericSubscriber<Knowitall, &Knowitall::onString>(k);
         NumberOfTheDay nod;
         nod.addSubscriber(n);
-        nod.addSubscriber(k);
+        nod.addGenericSubscriber<Knowitall, &Knowitall::onNumberOfTheDay>(k);
 
         std::atomic_bool go = {};
         std::thread stringPusher([&go, &sod]() {
@@ -197,10 +197,10 @@ TEST_CASE("deaths")
     StringOfTheDay sod;
     sod.addSubscriber(b);
     sod.addSubscriber(b2);
-    sod.addSubscriber(k);
+    sod.addGenericSubscriber<Knowitall, &Knowitall::onString>(k);
     NumberOfTheDay nod;
     nod.addSubscriber(n);
-    nod.addSubscriber(k);
+    nod.addGenericSubscriber<Knowitall, &Knowitall::onNumberOfTheDay>(k);
 
     std::atomic_bool go = {};
     std::thread stringPusher([&go, &sod, b]() {

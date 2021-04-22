@@ -29,7 +29,16 @@ public:
     Publisher& operator=(Publisher&&) = delete;
 
     void addSubscriber(std::shared_ptr<Subscriber<T>> sub);
-    void removeSubscriber(std::shared_ptr<Subscriber<T>> sub);
+    void removeSubscriber(std::shared_ptr<void> sub);
+
+    template <typename Class, void (Class::*Method)(const T&)>
+    void addGenericSubscriber(std::shared_ptr<Class> payload)
+    {
+        internalAddSub({payload, [](void* ptr, const T& t) {
+            auto rsub = static_cast<Class*>(ptr);
+            (rsub->*Method)(t);
+        }});
+    }
 
     void notifySubscribers(const T& t);
 
@@ -50,6 +59,8 @@ private:
         NotifyFunction notifyFunction;
     };
     std::vector<SubData> m_subs;
+
+    void internalAddSub(ActiveSub active);
 };
 
 } // namespace kuzco

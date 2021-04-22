@@ -53,20 +53,25 @@ template <typename T>
 void Publisher<T>::addSubscriber(std::shared_ptr<Subscriber<T>> sub)
 {
     std::lock_guard l(m_subsMutex);
-    std::shared_ptr<void> payload = sub;
-    auto f = find(m_subs, payload);
-    if (f != m_subs.end()) return;
-
-    auto& data = m_subs.emplace_back();
-    data.subscriberPayload = std::move(payload);
-    data.notifyFunction = [](void* ptr, const T& t) {
+    internalAddSub({std::move(sub), [](void* ptr, const T& t) {
         auto rsub = static_cast<Subscriber<T>*>(ptr);
         rsub->notify(t);
-    };
+    }});
 }
 
 template <typename T>
-void Publisher<T>::removeSubscriber(std::shared_ptr<Subscriber<T>> sub)
+void Publisher<T>::internalAddSub(ActiveSub active)
+{
+    auto f = find(m_subs, active.subscriberPayload);
+    if (f != m_subs.end()) return;
+
+    auto& data = m_subs.emplace_back();
+    data.subscriberPayload = std::move(active.subscriberPayload);
+    data.notifyFunction = active.notifyFunction;
+}
+
+template <typename T>
+void Publisher<T>::removeSubscriber(std::shared_ptr<void> sub)
 {
     std::lock_guard l(m_subsMutex);
     auto f = find(m_subs, sub);
