@@ -53,7 +53,8 @@ auto find(Vec& vec, const std::shared_ptr<void>& payload)
 template <typename T>
 void Publisher<T>::addSubscriber(std::shared_ptr<Subscriber<T>> sub)
 {
-    internalAddSub({sub, sub.get(), [](void* ptr, const T& t) {
+    void* ptr = sub.get();
+    internalAddSub({std::move(sub), ptr, [](void* ptr, const T& t) {
         auto rsub = static_cast<Subscriber<T>*>(ptr);
         rsub->notify(t);
     }});

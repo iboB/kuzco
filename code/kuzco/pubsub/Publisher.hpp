@@ -37,7 +37,8 @@ public:
 #if defined(_MSC_VER)
         static_assert(Method != nullptr);
 #endif
-        internalAddSub({payload, payload.get(), [](void* ptr, const T& t) {
+        void* ptr = payload.get();
+        internalAddSub({std::move(payload), ptr, [](void* ptr, const T& t) {
             auto rsub = static_cast<Class*>(ptr);
             (rsub->*Method)(t);
         }});
