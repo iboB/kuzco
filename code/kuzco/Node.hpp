@@ -14,12 +14,6 @@
 namespace kuzco
 {
 
-namespace impl
-{
-template <typename T>
-class BasicNode;
-} // namespace impl
-
 template <typename T>
 class Root;
 
