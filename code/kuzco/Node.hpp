@@ -8,6 +8,8 @@
 #pragma once
 
 #include "impl/Data.hpp"
+#include "impl/DataHolder.hpp"
+#include "Detached.hpp"
 
 #include <type_traits>
 
@@ -19,33 +21,6 @@ class Root;
 
 namespace impl
 {
-
-template <typename T>
-class DataHolder
-{
-public:
-    using Type = T;
-
-    std::shared_ptr<const T> payload() const { return m_data.payload; }
-    const T* qget() const { return this->m_data.qdata; }
-
-    // shallow comparisons
-    template <typename U>
-    bool operator==(const DataHolder<U>& b) const
-    {
-        return qget() == b.qget();
-    }
-
-    template <typename U>
-    bool operator!=(const DataHolder<U>& b) const
-    {
-        return qget() != b.qget();
-    }
-
-protected:
-    T* qget() { return this->m_data.qdata; }
-    impl::Data<T> m_data;
-};
 
 // base class for nodes
 template <typename T>
@@ -105,25 +80,6 @@ protected:
 };
 
 } // namespace impl
-
-// convenience class which wraps a detached immutable object
-// never null
-// has quick access to underlying data
-template <typename T>
-class Detached : public impl::DataHolder<const T>
-{
-public:
-    Detached(std::shared_ptr<const T> payload)
-    {
-        this->m_data.qdata = payload.get();
-        this->m_data.payload = std::move(payload);
-    }
-
-    const T* get() const { return this->qget(); }
-    const T* operator->() const { return get(); }
-    const T& operator*() const { return *get(); }
-};
-
 
 template <typename T>
 class Node : public impl::BasicNode<T>
@@ -195,31 +151,6 @@ public:
 
 template <typename T>
 using Leaf = Node<const T>;
-
-template <typename T>
-class OptDetached : public impl::DataHolder<const T>
-{
-public:
-    OptDetached() = default;
-
-    OptDetached(const Detached<T>& d)
-    {
-        this->m_data.qdata = d.get();
-        this->m_data.payload = d.payload();
-    }
-
-    OptDetached(std::shared_ptr<const T> payload)
-    {
-        this->m_data.qdata = payload.get();
-        this->m_data.payload = std::move(payload);
-    }
-
-    const T* get() const { return this->qget(); }
-    const T* operator->() const { return get(); }
-    const T& operator*() const { return *get(); }
-
-    explicit operator bool() const { return !!this->m_data.qdata; }
-};
 
 template <typename T>
 class OptNode : public impl::BasicNode<T>
