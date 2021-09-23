@@ -43,8 +43,6 @@ protected:
     // for new (local) objects and in a transaction you could get the payload of a unique object
     // this will increment the use count, but unique will still be true
     // you think of unique as "unique in the current thread"
-    // unique also means that we can replace the current data with another (not only it's payload)
-    // as we do when we move-assign objects
 
     // it's populated in the constructors appropriately
     bool m_unique = true; // an object is unique when intiially constructed
@@ -64,16 +62,6 @@ protected:
     {
         this->m_data = std::move(data);
         m_unique = true; // we're replaced so we're once more unique
-    }
-
-    // perform the unique check
-    // create new data if needed
-    // reassign data from other source
-    void checkedReplace(BasicNode& other)
-    {
-        if (unique()) this->m_data = std::move(other.m_data);
-        else replaceWith(std::move(other.m_data));
-        other.m_data = {};
     }
 
     friend class Root<T>;
@@ -123,7 +111,7 @@ public:
     //}
 
     Node(Node&& other) noexcept { this->takeData(other); }
-    Node& operator=(Node&& other) noexcept { this->checkedReplace(other); return *this; }
+    Node& operator=(Node&& other) noexcept { this->takeData(other); return *this; }
 
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Node& operator=(U&& u)
@@ -169,7 +157,7 @@ public:
     OptNode& operator=(const OptNode&) = delete;
 
     OptNode(OptNode&& other) noexcept { this->takeData(other); }
-    OptNode& operator=(OptNode&& other) noexcept { this->checkedReplace(other); return *this; }
+    OptNode& operator=(OptNode&& other) noexcept { this->takeData(other); return *this; }
 
     OptNode(std::nullptr_t) noexcept {} // nothing special to do
     OptNode& operator=(std::nullptr_t) noexcept { this->m_data = {}; return *this; }
