@@ -252,5 +252,6 @@ TEST_CASE("manual unsub")
     ok2.reset();
 
     stringPusher.join();
-    CHECK(k1.m_totalUpdates == strings.size());
+    k1.m_execution.stopAndJoinThread();
+    CHECK(k1.m_totalNotifys == strings.size());
 }
