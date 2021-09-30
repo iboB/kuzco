@@ -210,7 +210,7 @@ TEST_CASE("deaths")
             sod.set(s);
             if (++i == 5) sod.removeSubscriber(b);
         }
-        });
+    });
     go = true;
     for (int i = 0; i < 20; ++i) {
         if (i % 3 == 0) nod.notifySubscribers();
@@ -228,4 +228,29 @@ TEST_CASE("deaths")
 
     b2->m_execution.stopAndJoinThread();
     CHECK(b2->m_totalStrings == strings.size());
+}
+
+
+TEST_CASE("manual unsub")
+{
+    Knowitall k1;
+    std::optional<Knowitall> ok2;
+    auto& k2 = ok2.emplace();
+
+    StringOfTheDay sod;
+
+    auto s1 = sod.addSubscriber<Knowitall, &Knowitall::onString>(k1);
+    auto s2 = sod.addSubscriber<Knowitall, &Knowitall::onString>(k2);
+
+    std::thread stringPusher([&sod]() {
+        for (auto& s : strings) {
+            sod.set(s);
+        }
+    });
+    std::this_thread::yield();
+    sod.removeSubscriberSync(s2);
+    ok2.reset();
+
+    stringPusher.join();
+    CHECK(k1.m_totalUpdates == strings.size());
 }

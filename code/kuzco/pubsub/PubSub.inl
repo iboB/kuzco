@@ -82,8 +82,16 @@ void Publisher<T>::removeSubscriber(std::shared_ptr<void> sub)
 }
 
 template <typename T>
+void Publisher<T>::removeSubscriberSync(std::shared_ptr<void> sub)
+{
+    std::lock_guard l(m_notifyingMutex);
+    removeSubscriber(std::move(sub));
+}
+
+template <typename T>
 void Publisher<T>::notifySubscribers(const T& t)
 {
+    std::lock_guard l(m_notifyingMutex);
     auto subs = getSubs();
     for (auto& s : subs)
     {
