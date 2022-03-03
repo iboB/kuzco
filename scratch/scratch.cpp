@@ -1,3 +1,10 @@
+// kuzco
+// Copyright (c) 2020-2022 Borislav Stanimirov
+//
+// Distributed under the MIT Software License
+// See accompanying file LICENSE.txt or copy at
+// https://opensource.org/licenses/MIT
+//
 #include <kuzco/Kuzco.hpp>
 
 #include <iostream>

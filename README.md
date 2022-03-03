@@ -8,4 +8,4 @@ No touchy! Immutable state for C++
 
 The library is distributed under the MIT Software License. See LICENSE.txt for further details or copy [here](http://opensource.org/licenses/MIT).
 
-Copyright &copy; 2020-2021 Borislav Stanimirov.
+Copyright &copy; 2020-2022 Borislav Stanimirov.
