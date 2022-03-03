@@ -2,23 +2,9 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 include(./get_cpm.cmake)
 
-CPMAddPackage(
-    NAME icm
-    GITHUB_REPOSITORY iboB/icm
-    VERSION 1.3.1
-)
-
-CPMAddPackage(
-    NAME doctest-lib
-    GITHUB_REPOSITORY iboB/doctest-lib
-    GIT_TAG 2.4.4
-)
-
-CPMAddPackage(
-    NAME xec
-    GITHUB_REPOSITORY iboB/xec
-    VERSION 1.1.1
-)
+CPMAddPackage(gh:iboB/icm@1.3.3)
+CPMAddPackage(gh:iboB/doctest-lib@2.4.6)
+CPMAddPackage(gh:iboB/xec@1.3.1)
 
 include(${icm_SOURCE_DIR}/icm_testing.cmake)
 
