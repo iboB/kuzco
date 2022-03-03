@@ -25,10 +25,8 @@ public:
     }
 
     Root(const Node<T>& obj)
-    {
-        m_root.attachTo(obj);
-        m_detachedRoot = m_root.m_data.payload;
-    }
+        : Root(Node<T>(obj))
+    {}
 
     Root(const Root&) = delete;
     Root& operator=(const Root&) = delete;
@@ -69,7 +67,7 @@ public:
 private:
     using PL = typename impl::Data<T>::Payload;
 
-    OptNode<T> m_root;
+    Node<T> m_root;
 
     std::mutex m_transactionMutex;
     PL m_detachedRoot; // transaction safe root, atomically updated only after transaction ends

@@ -91,14 +91,19 @@ public:
         // or an interstate exchange (detached node copied from one root onto another in another's transaction - shallow again)
         // if we absolutely need partial deep exchanges, we can uncomment the following two lines and the ones in the copy assign operator
         // BUT to make it work we must carry a copy function with the data, otherwise this won't compile for non-copyable objects
+        // Sample code:
+
         //if (!other.unique()) m_data = impl::Data<T>::construct(*other.get());
         //else
-        {
-            this->m_data = other.m_data;
-        }
+        //{
+        //    this->m_data = other.m_data;
+        //}
+        //// in any case we're not unique any more
+        //this->m_unique = false;
+        //
 
-        // in any case we're not unique any more
-        this->m_unique = false;
+        // until then, just attach
+        this->attachTo(other);
     }
 
     // this is intentionally deleted
