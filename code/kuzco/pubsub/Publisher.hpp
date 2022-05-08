@@ -58,33 +58,32 @@ public:
     }
 
     using SubHandle = std::shared_ptr<void>;
-    template <typename Class, void (Class::*Method)(const T&)>
+
+    using NotifyFunction = void (*)(void*, const T& t);
+
+    SubHandle addSubscriber(void* userData, NotifyFunction func)
+    {
+        auto handle = std::make_shared<int>();
+        void* ptr = userData;
+        internalAddSub({handle, ptr, func});
+        return handle;
+    }
+
+    template <typename Class, void (Class::* Method)(const T&)>
     SubHandle addSubscriber(Class& ref)
     {
 #if defined(_MSC_VER)
         static_assert(Method != nullptr);
 #endif
-        auto handle = std::make_shared<SubHandlePayload<Class>>(ref);
-        void* ptr = handle.get();
-        internalAddSub({handle, ptr, [](void* ptr, const T& t) {
-            auto hp = static_cast<SubHandlePayload<Class>*>(ptr);
-            (hp->ref.*Method)(t);
-        }});
-        return handle;
+        return addSubscriber(&ref, [](void* ptr, const T& t) {
+            auto rsub = static_cast<Class*>(ptr);
+            (rsub->*Method)(t);
+        });
     }
 
     void notifySubscribers(const T& t);
 
 private:
-    using NotifyFunction = void (*)(void*, const T& t);
-
-    template <typename Class>
-    struct SubHandlePayload
-    {
-        SubHandlePayload(Class& r) : ref(r) {}
-        Class& ref;
-    };
-
     struct ActiveSub
     {
         std::shared_ptr<void> subscriberPayload;
