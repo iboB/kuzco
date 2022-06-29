@@ -92,3 +92,48 @@ TEST_CASE("modifiers")
         CHECK(X::alive == 11);
     }
 }
+
+TEST_CASE("resize")
+{
+    LCScope lcs;
+    kuzco::NodeStdVector<X> vec;
+    vec.resize(4);
+    CHECK(vec.size() == 4);
+    {
+        auto cc = vec;
+        CHECK(X::dc == 4);
+        CHECK(X::cc == 0);
+        cc.modify(0)->val = 10;
+        cc.modify(1)->val = 11;
+        cc.modify(2)->val = 12;
+        cc.modify(3)->val = 13;
+        CHECK(X::dc == 4);
+        CHECK(X::cc == 4);
+    }
+
+    {
+        auto cc = vec;
+        cc.resize(2);
+        CHECK(cc.size() == 2);
+        CHECK(X::dc == 4);
+        CHECK(X::cc == 4);
+        CHECK(X::alive == 4);
+        cc.modify(1)->val = 11;
+        CHECK(X::cc == 5);
+        CHECK(X::alive == 5);
+    }
+
+    CHECK(X::alive == 4);
+
+    {
+        auto cc = vec;
+        cc.pop_back();
+        CHECK(cc.size() == 3);
+        CHECK(X::dc == 4);
+        CHECK(X::cc == 5);
+        CHECK(X::alive == 4);
+        cc.modify(1)->val = 11;
+        CHECK(X::cc == 6);
+        CHECK(X::alive == 5);
+    }
+}
