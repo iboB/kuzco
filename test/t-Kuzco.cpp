@@ -5,7 +5,7 @@
 // See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/MIT
 //
-#include <kuzco/Root.hpp>
+#include <kuzco/State.hpp>
 
 #include <doctest/doctest.h>
 
@@ -244,9 +244,9 @@ TEST_CASE("Variable objects")
 TEST_CASE("Basic state")
 {
     clearAllCounters();
-    Root root = Node<Pair>{};
+    State state = Node<Pair>{};
 
-    auto pre = root.detach();
+    auto pre = state.detach();
 
     CHECK(LC<Pair>::alive == 1);
     CHECK(LC<Pair>::dc == 1);
@@ -255,14 +255,14 @@ TEST_CASE("Basic state")
     CHECK(LC<Pair>::ca == 0);
     CHECK(LC<Pair>::ma == 0);
 
-    auto mod = root.beginTransaction();
+    auto mod = state.beginTransaction();
     mod->a->data->name = "Alice";
     auto tempapl = mod->a.payload();
     auto tempadatapl = mod->a->data.payload();
     mod->a->data->age = 104;
-    root.endTransaction();
+    state.endTransaction();
 
-    auto post = root.detach();
+    auto post = state.detach();
 
     CHECK(pre != post);
     CHECK(pre->b.payload() == post->b.payload());
@@ -274,7 +274,7 @@ TEST_CASE("Basic state")
 TEST_CASE("Complex state")
 {
     clearAllCounters();
-    Root root = Node<Company>{};
+    State state = Node<Company>{};
     CHECK(LC<Company>::alive == 1);
     CHECK(LC<Company>::dc == 1);
     CHECK(LC<Company>::cc == 0);
@@ -282,9 +282,9 @@ TEST_CASE("Complex state")
     CHECK(LC<Company>::ca == 0);
     CHECK(LC<Company>::ma == 0);
 
-    auto mod = root.beginTransaction();
+    auto mod = state.beginTransaction();
     mod->staff.resize(5);
-    root.endTransaction();
+    state.endTransaction();
 
     CHECK(LC<Company>::alive == 1);
     CHECK(LC<Company>::dc == 1);
@@ -293,7 +293,7 @@ TEST_CASE("Complex state")
     CHECK(LC<Company>::ca == 0);
     CHECK(LC<Company>::ma == 0);
 
-    auto d = root.detach();
+    auto d = state.detach();
     CHECK(mod->staff.size() == 5);
 
     CHECK(LC<Employee>::alive == 5);
@@ -303,9 +303,9 @@ TEST_CASE("Complex state")
     CHECK(LC<Employee>::ca == 0);
     CHECK(LC<Employee>::ma == 0);
 
-    mod = root.beginTransaction();
+    mod = state.beginTransaction();
     mod->staff.emplace(mod->staff.begin());
-    root.endTransaction();
+    state.endTransaction();
 
     CHECK(LC<Employee>::alive == 6);
     CHECK(LC<Employee>::dc == 6);
@@ -314,7 +314,7 @@ TEST_CASE("Complex state")
     CHECK(LC<Employee>::ca == 0);
     CHECK(LC<Employee>::ma == 0);
 
-    CHECK(LC<Company>::alive == 2); // one in root, one in d
+    CHECK(LC<Company>::alive == 2); // one in state, one in d
     CHECK(LC<Company>::dc == 1);
     CHECK(LC<Company>::cc == 2);
     CHECK(LC<Company>::mc == 0);
@@ -341,7 +341,7 @@ TEST_CASE("Interstate exchange")
     CHECK(PersonData::dc == 2);
     CHECK(PersonData::cc == 0);
 
-    Root root(std::move(no));
+    State state(std::move(no));
 
     CHECK(Company::alive == 1);
     CHECK(Company::dc == 1);
@@ -351,7 +351,7 @@ TEST_CASE("Interstate exchange")
     CHECK(PersonData::dc == 2);
     CHECK(PersonData::cc == 0);
 
-    Node<Boss> boss = *root.detach()->ceo;
+    Node<Boss> boss = *state.detach()->ceo;
 
     CHECK(Company::alive == 1);
     CHECK(Company::dc == 1);
@@ -377,9 +377,9 @@ TEST_CASE("Interstate exchange")
     CHECK(Boss::dc == 1);
     CHECK(Boss::cc == 1);
 
-    auto t = root.beginTransaction();
+    auto t = state.beginTransaction();
     t->ceo = std::move(boss);
-    root.endTransaction();
+    state.endTransaction();
 
     CHECK(Company::alive == 1);
     CHECK(Company::dc == 1);
@@ -392,10 +392,10 @@ TEST_CASE("Interstate exchange")
     CHECK(Boss::dc == 1);
     CHECK(Boss::cc == 1);
 
-    Root other = Node<Company>{};
+    State other = Node<Company>{};
 
     t = other.beginTransaction();
-    t->ceo = Node<Boss>(*root.detach()->ceo);
+    t->ceo = Node<Boss>(*state.detach()->ceo);
     other.endTransaction();
 
     CHECK(Company::alive == 2);

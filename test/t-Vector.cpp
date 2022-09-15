@@ -7,7 +7,7 @@
 //
 #include <doctest/doctest.h>
 
-#include <kuzco/Root.hpp>
+#include <kuzco/State.hpp>
 #include <kuzco/StdVector.hpp>
 
 #include <cstring>
@@ -174,10 +174,10 @@ TEST_CASE("Vector is a vector")
 }
 
 template <typename T>
-class State : private kuzco::Root<VecState<T>> {
+class State : private kuzco::State<VecState<T>> {
 public:
     State()
-        : kuzco::Root<VecState<T>>(kuzco::Node<VecState<T>>())
+        : kuzco::State<VecState<T>>(kuzco::Node<VecState<T>>())
     {}
 
     struct Transaction {
@@ -211,8 +211,8 @@ public:
         return Transaction(*this);
     }
 
-    using kuzco::Root<VecState<T>>::detach;
-    using kuzco::Root<VecState<T>>::detachedPayload;
+    using kuzco::State<VecState<T>>::detach;
+    using kuzco::State<VecState<T>>::detachedPayload;
 };
 
 TEST_CASE("State vector")

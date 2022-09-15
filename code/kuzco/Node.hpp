@@ -17,7 +17,7 @@ namespace kuzco
 {
 
 template <typename T>
-class Root;
+class State;
 
 namespace impl
 {
@@ -64,7 +64,7 @@ protected:
         m_unique = true; // we're replaced so we're once more unique
     }
 
-    friend class Root<T>;
+    friend class State<T>;
 };
 
 } // namespace impl
@@ -88,7 +88,7 @@ public:
         // it should be impossible to add a deep object with a value constructor
         // so here we can safely assume that the source is either a COW within a transaction (must be shallow)
         // or an implicit detach (copy of an already detached node, or one from a new object)
-        // or an interstate exchange (detached node copied from one root onto another in another's transaction - shallow again)
+        // or an interstate exchange (detached node copied from one state onto another in another's transaction - shallow again)
         // if we absolutely need partial deep exchanges, we can uncomment the following two lines and the ones in the copy assign operator
         // BUT to make it work we must carry a copy function with the data, otherwise this won't compile for non-copyable objects
         // Sample code:

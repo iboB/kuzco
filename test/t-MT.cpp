@@ -5,7 +5,7 @@
 // See accompanying file LICENSE.txt or copy at
 // https://opensource.org/licenses/MIT
 //
-#include <kuzco/Root.hpp>
+#include <kuzco/State.hpp>
 
 #include <doctest/doctest.h>
 
@@ -45,7 +45,7 @@ struct Company
     OptNode<Employee> cto;
 };
 
-using DRoot = Detached<Company>;
+using DState = Detached<Company>;
 
 std::random_device rdevice;
 std::mutex rmutex;
@@ -65,9 +65,9 @@ struct SingleWriterTest
         while (goOn3 != 3); // silly spin
         for (auto& f : writes)
         {
-            auto mut = root->beginTransaction();
+            auto mut = state->beginTransaction();
             f(mut);
-            root->endTransaction();
+            state->endTransaction();
         }
     }
 
@@ -82,12 +82,12 @@ struct SingleWriterTest
 
         for (auto& f : localReads)
         {
-            auto d = root->detach();
+            auto d = state->detach();
             f(d);
         }
         for (auto& f : localReads)
         {
-            auto d = root->detach();
+            auto d = state->detach();
             f(d);
         }
     }
@@ -104,9 +104,9 @@ struct SingleWriterTest
     }
 
     std::vector<std::function<void(Company*)>> writes;
-    std::vector<std::function<void(DRoot)>> reads;
+    std::vector<std::function<void(DState)>> reads;
 
-    std::unique_ptr<Root<Company>> root;
+    std::unique_ptr<State<Company>> state;
 };
 
 } // anonymous namespace
@@ -128,32 +128,32 @@ TEST_CASE("Single writer")
     SingleWriterTest test;
 
     test.reads = {
-        [](DRoot c) {
+        [](DState c) {
             CHECK_FALSE(!!c->cto);
         },
-        [](DRoot c) {
+        [](DState c) {
             CHECK(c->staff.size() > 3);
             for (auto& e : c->staff)
             {
                 CHECK(e->data->name.front() == 'A');
             }
         },
-        [](DRoot c) {
+        [](DState c) {
             CHECK(c->name == "ACME");
         },
-        [](DRoot c) {
+        [](DState c) {
             for (auto& e : c->staff)
             {
                 CHECK(int(e->salary) % 5 == 0);
             }
         },
-        [](DRoot c) {
+        [](DState c) {
             for (auto& e : c->staff)
             {
                 CHECK(e->data->age < 50);
             }
         },
-        [](DRoot c) {
+        [](DState c) {
             for (auto& e : c->staff)
             {
                 CHECK(e->department->length() == 3);
@@ -187,6 +187,6 @@ TEST_CASE("Single writer")
         },
     };
 
-    test.root.reset(new Root(std::move(acme)));
+    test.state.reset(new State(std::move(acme)));
     test.run();
 }

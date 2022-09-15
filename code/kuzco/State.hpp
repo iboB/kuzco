@@ -15,23 +15,23 @@ namespace kuzco
 {
 
 template <typename T>
-class Root
+class State
 {
 public:
-    Root(Node<T>&& obj)
+    State(Node<T>&& obj)
         : m_root(std::move(obj))
     {
-        m_detachedRoot = m_root.m_data.payload;
+        m_detachedState = m_root.m_data.payload;
     }
 
-    Root(const Node<T>& obj)
-        : Root(Node<T>(obj))
+    State(const Node<T>& obj)
+        : State(Node<T>(obj))
     {}
 
-    Root(const Root&) = delete;
-    Root& operator=(const Root&) = delete;
-    Root(Root&&) = delete;
-    Root& operator=(Root&&) = delete;
+    State(const State&) = delete;
+    State& operator=(const State&) = delete;
+    State(State&&) = delete;
+    State& operator=(State&&) = delete;
 
     // returns a non-const pointer to the underlying data
     T* beginTransaction()
@@ -47,12 +47,12 @@ public:
         if (store)
         {
             // detach
-            std::atomic_store_explicit(&m_detachedRoot, m_root.m_data.payload, std::memory_order_relaxed);
+            std::atomic_store_explicit(&m_detachedState, m_root.m_data.payload, std::memory_order_relaxed);
         }
         else
         {
             // abort transaction
-            m_root.m_data.payload = m_detachedRoot;
+            m_root.m_data.payload = m_detachedState;
             m_root.m_data.qdata = m_root.m_data.payload.get();
         }
         m_transactionMutex.unlock();
@@ -61,7 +61,7 @@ public:
     Detached<T> detach() const { return Detached(detachedPayload()); }
     std::shared_ptr<const T> detachedPayload() const
     {
-        return std::atomic_load_explicit(&m_detachedRoot, std::memory_order_relaxed);
+        return std::atomic_load_explicit(&m_detachedState, std::memory_order_relaxed);
     }
 
 private:
@@ -70,7 +70,7 @@ private:
     Node<T> m_root;
 
     std::mutex m_transactionMutex;
-    PL m_detachedRoot; // transaction safe root, atomically updated only after transaction ends
+    PL m_detachedState; // transaction safe root, atomically updated only after transaction ends
 };
 
 }

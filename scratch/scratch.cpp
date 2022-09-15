@@ -21,7 +21,7 @@ struct ndc
 
 int main()
 {
-    Root<ndc> ri = Node<ndc>(3);
+    State<ndc> ri = Node<ndc>(3);
     auto d = ri.detach();
     auto d2 = d;
 }

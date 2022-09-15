@@ -6,7 +6,7 @@
 // https://opensource.org/licenses/MIT
 //
 #include <kuzco/Handle.hpp>
-#include <kuzco/Root.hpp>
+#include <kuzco/State.hpp>
 
 #include <doctest/doctest.h>
 
@@ -23,7 +23,7 @@ TEST_CASE("Simple handle test")
 {
     clearAllCounters();
 
-    kuzco::Root<HandleTestType> r1({});
+    kuzco::State<HandleTestType> r1({});
     kuzco::Handle<HandleTestType> h1(r1.detach());
 
     {
@@ -62,7 +62,7 @@ TEST_CASE("Simple opt handle test")
     auto r = h1.load();
     CHECK(!r);
 
-    kuzco::Root<HandleTestType> r1({});
+    kuzco::State<HandleTestType> r1({});
     h1.store(r1.detach());
     r = h1.load();
     CHECK(r->n == 1);
