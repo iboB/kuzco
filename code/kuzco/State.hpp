@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Node.hpp"
+#include "SharedState.hpp"
 
 #include <mutex>
 
@@ -20,9 +21,8 @@ class State
 public:
     State(Node<T>&& obj)
         : m_root(std::move(obj))
-    {
-        m_detachedState = m_root.m_data.payload;
-    }
+        , m_sharedState(m_root.m_data.payload)
+    {}
 
     State(const Node<T>& obj)
         : State(Node<T>(obj))
@@ -47,30 +47,26 @@ public:
         if (store)
         {
             // detach
-            std::atomic_store_explicit(&m_detachedState, m_root.m_data.payload, std::memory_order_relaxed);
+            m_sharedState.store(m_root.m_data.payload);
         }
         else
         {
             // abort transaction
-            m_root.m_data.payload = m_detachedState;
+            m_root.m_data.payload = *m_sharedState.m_qstate;
             m_root.m_data.qdata = m_root.m_data.payload.get();
         }
         m_transactionMutex.unlock();
     }
 
-    Detached<T> detach() const { return Detached(detachedPayload()); }
-    std::shared_ptr<const T> detachedPayload() const
-    {
-        return std::atomic_load_explicit(&m_detachedState, std::memory_order_relaxed);
-    }
+    Detached<T> detach() const { return m_sharedState.detach(); }
+    std::shared_ptr<const T> detachedPayload() const { return m_sharedState.detachedPayload(); }
+
+    const SharedState<T>& sharedState() const { return m_sharedState; }
 
 private:
-    using PL = typename impl::Data<T>::Payload;
-
     Node<T> m_root;
-
     std::mutex m_transactionMutex;
-    PL m_detachedState; // transaction safe root, atomically updated only after transaction ends
+    SharedState<T> m_sharedState; // transaction safe root, atomically updated only after transaction ends
 };
 
 }
