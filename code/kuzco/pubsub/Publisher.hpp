@@ -50,9 +50,9 @@ public:
     using SubHandle = std::shared_ptr<void>;
     using NotifyFunction = void (*)(void*, const T& t);
 
-    void addSubscriber(std::shared_ptr<void> userData, NotifyFunction func)
+    void addSubscriber(std::shared_ptr<void> handle, NotifyFunction func)
     {
-        void* ptr = userData.get();
+        void* ptr = handle.get();
         internalAddSub({handle, ptr, func});
     }
 
@@ -82,11 +82,11 @@ private:
     static NotifyFunction getNotifyFunction() {
         return [](void* ptr, const T& t) {
             auto rsub = static_cast<Sub*>(ptr);
-            if constexpr (FuncDeducer<Func>::method) {
-                (rsub->*Func)(ptr);
+            if constexpr (FuncDeducer<decltype(Func)>::method) {
+                (rsub->*Func)(t);
             }
             else {
-                Func(*rsub, ptr);
+                Func(*rsub, t);
             }
         };
     }

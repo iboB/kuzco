@@ -15,15 +15,15 @@
 TEST_SUITE_BEGIN("PubSub");
 
 using namespace kuzco;
-/*
+
 class NumberOfTheDay;
-class Numberfile : public Subscriber<NumberOfTheDay>, public xec::ExecutorBase {
+class Numberfile : public xec::ExecutorBase {
 public:
     Numberfile() : m_execution(*this) {
         m_execution.launchThread();
     }
 
-    virtual void notify(const NumberOfTheDay& nd) override;
+    void onNumber(const NumberOfTheDay& nd);
 
     virtual void update() override {
         int num = m_num;
@@ -60,20 +60,20 @@ private:
     std::atomic_int32_t m_number = 0;
 };
 
-void Numberfile::notify(const NumberOfTheDay& nd)
+void Numberfile::onNumber(const NumberOfTheDay& nd)
 {
     m_num = nd.get();
     wakeUpNow();
 }
 
-class Bibliofile final : public Subscriber<std::string>, public xec::ExecutorBase
+class Bibliofile final : public xec::ExecutorBase
 {
 public:
     Bibliofile() : m_execution(*this) {
         m_execution.launchThread();
     }
 
-    virtual void notify(const std::string& s) override {
+    void onString(const std::string& s) {
         CHECK(s.length() == 3);
         std::lock_guard l(m_stringsMutex);
         m_strings.emplace_back(s);
@@ -155,11 +155,11 @@ TEST_CASE("straight-forward") {
 
     {
         StringOfTheDay sod;
-        sod.addSubscriber(b);
-        sod.addSubscriber<Knowitall, &Knowitall::onString>(k);
+        sod.addSubscriber<&Bibliofile::onString>(b);
+        sod.addSubscriber<&Knowitall::onString>(k);
         NumberOfTheDay nod;
-        nod.addSubscriber(n);
-        nod.addSubscriber<Knowitall, &Knowitall::onNumberOfTheDay>(k);
+        nod.addSubscriber<&Numberfile::onNumber>(n);
+        nod.addSubscriber<&Knowitall::onNumberOfTheDay>(k);
 
         std::atomic_bool go = {};
         std::thread stringPusher([&go, &sod]() {
@@ -191,12 +191,12 @@ TEST_CASE("deaths")
     auto k = std::make_shared<Knowitall>();
 
     StringOfTheDay sod;
-    sod.addSubscriber(b);
-    sod.addSubscriber(b2);
-    sod.addSubscriber<Knowitall, &Knowitall::onString>(k);
+    sod.addSubscriber<&Bibliofile::onString>(b);
+    sod.addSubscriber<&Bibliofile::onString>(b2);
+    sod.addSubscriber<&Knowitall::onString>(k);
     NumberOfTheDay nod;
-    nod.addSubscriber(n);
-    nod.addSubscriber<Knowitall, &Knowitall::onNumberOfTheDay>(k);
+    nod.addSubscriber<&Numberfile::onNumber>(n);
+    nod.addSubscriber<&Knowitall::onNumberOfTheDay>(k);
 
     std::atomic_bool go = {};
     std::thread stringPusher([&go, &sod, b]() {
@@ -235,8 +235,8 @@ TEST_CASE("manual unsub")
 
     StringOfTheDay sod;
 
-    auto s1 = sod.addSubscriber<Knowitall, &Knowitall::onString>(k1);
-    auto s2 = sod.addSubscriber<Knowitall, &Knowitall::onString>(k2);
+    auto s1 = sod.addSubscriber<&Knowitall::onString>(k1);
+    auto s2 = sod.addSubscriber<&Knowitall::onString>(k2);
 
     std::thread stringPusher([&sod]() {
         for (auto& s : strings) {
@@ -251,4 +251,3 @@ TEST_CASE("manual unsub")
     k1.m_execution.stopAndJoinThread();
     CHECK(k1.m_totalNotifys == strings.size());
 }
-*/
