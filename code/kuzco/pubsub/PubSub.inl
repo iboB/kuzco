@@ -9,9 +9,6 @@ namespace kuzco
 {
 
 template <typename T>
-Subscriber<T>::~Subscriber() = default; // exports the virtual table
-
-template <typename T>
 Publisher<T>::Publisher() = default;
 template <typename T>
 Publisher<T>::~Publisher() = default;
@@ -44,16 +41,6 @@ auto find(Vec& vec, const std::shared_ptr<void>& payload)
         return !data.subscriberPayload.owner_before(payload) && !payload.owner_before(data.subscriberPayload);
     });
 }
-}
-
-template <typename T>
-void Publisher<T>::addSubscriber(std::shared_ptr<Subscriber<T>> sub)
-{
-    void* ptr = sub.get();
-    internalAddSub({std::move(sub), ptr, [](void* ptr, const T& t) {
-        auto rsub = static_cast<Subscriber<T>*>(ptr);
-        rsub->notify(t);
-    }});
 }
 
 template <typename T>
