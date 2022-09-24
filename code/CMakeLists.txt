@@ -1,3 +1,6 @@
+# Copyright (c) Borislav Stanimirov
+# SPDX-License-Identifier: MIT
+#
 add_library(kuzco INTERFACE)
 
 target_include_directories(kuzco INTERFACE .)
