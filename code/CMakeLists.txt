@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 #
 add_library(kuzco INTERFACE)
+add_library(kuzco::kuzco ALIAS kuzco)
 
 target_include_directories(kuzco INTERFACE .)
 
