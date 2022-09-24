@@ -5,19 +5,19 @@
 #include <kuzco/State.hpp>
 
 #include <doctest/doctest.h>
+#include <doctest/util/lifetime_counter.hpp>
 
 #include <vector>
 
-#include "TestLifetimeCounter.inl"
-
-struct HandleTestType : public LC<HandleTestType>
+struct HandleTestType : public doctest::util::lifetime_counter<HandleTestType>
 {
     int n = 1;
 };
 
 TEST_CASE("Simple handle test")
 {
-    clearAllCounters();
+    HandleTestType::lifetime_stats stats;
+    doctest::util::lifetime_counter_sentry sentry(stats);
 
     kuzco::State<HandleTestType> r1({});
     kuzco::Handle<HandleTestType> h1(r1.detach());
@@ -52,7 +52,8 @@ TEST_CASE("Simple handle test")
 
 TEST_CASE("Simple opt handle test")
 {
-    clearAllCounters();
+    HandleTestType::lifetime_stats stats;
+    doctest::util::lifetime_counter_sentry sentry(stats);
 
     kuzco::OptHandle<HandleTestType> h1({});
     auto r = h1.load();

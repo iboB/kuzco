@@ -4,6 +4,7 @@
 #include <kuzco/State.hpp>
 
 #include <doctest/doctest.h>
+#include <doctest/util/lifetime_counter.hpp>
 
 #include <string_view>
 
@@ -16,9 +17,7 @@ using namespace kuzco;
 namespace
 {
 
-#include "TestLifetimeCounter.inl"
-
-struct PersonData : public LC<PersonData>
+struct PersonData : public doctest::util::lifetime_counter<PersonData>
 {
     PersonData() = default;
     PersonData(std::string_view n, int a) : name(n), age(a) {}
@@ -27,14 +26,14 @@ struct PersonData : public LC<PersonData>
 };
 
 
-struct Employee : public LC<Employee>
+struct Employee : public doctest::util::lifetime_counter<Employee>
 {
     Node<PersonData> data;
     Node<std::string> department;
     double salary = 0;
 };
 
-struct Pair : public LC<Pair>
+struct Pair : public doctest::util::lifetime_counter<Pair>
 {
     Node<Employee> a;
     Node<Employee> b;
@@ -43,13 +42,13 @@ struct Pair : public LC<Pair>
 
 using Blob = std::unique_ptr<std::vector<int>>;
 
-struct Boss : public LC<Boss>
+struct Boss : public doctest::util::lifetime_counter<Boss>
 {
     Node<PersonData> data;
     Node<Blob> blob;
 };
 
-struct Company : public LC<Company>
+struct Company : public doctest::util::lifetime_counter<Company>
 {
     std::vector<Node<Employee>> staff;
     Node<Boss> ceo;
@@ -62,10 +61,13 @@ TEST_SUITE_BEGIN("Kuzco");
 
 TEST_CASE("PersonData new object")
 {
+    PersonData::lifetime_stats stats;
+    doctest::util::lifetime_counter_sentry sentry(stats);
+
     Node<PersonData> s1;
     CHECK(s1->name.empty());
     CHECK(s1->age == 0);
-    CHECK(PersonData::dc == 1);
+    CHECK(stats.d_ctr == 1);
 
     s1->name = "Bob";
     CHECK(s1->name == "Bob");
@@ -73,40 +75,36 @@ TEST_CASE("PersonData new object")
     Node<PersonData> s2("John", 34);
     CHECK(s2->name == "John");
     CHECK(s2->age == 34);
-    CHECK(PersonData::dc == 2);
+    CHECK(stats.d_ctr == 2);
 
     s1 = PersonData("Alice", 55);
-    CHECK(PersonData::dc == 3);
-    CHECK(PersonData::ma == 1);
+    CHECK(stats.d_ctr == 3);
+    CHECK(stats.m_asgn == 1);
     CHECK(s1->name == "Alice");
     CHECK(s1->age == 55);
 
-    CHECK(PersonData::alive == 2);
-    CHECK(PersonData::dc == 3);
-    CHECK(PersonData::cc == 0);
-    CHECK(PersonData::mc == 0);
-    CHECK(PersonData::ca == 0);
-    CHECK(PersonData::ma == 1);
-
-    clearAllCounters();
-
-    CHECK(PersonData::alive == 0);
-    CHECK(PersonData::dc == 0);
-    CHECK(PersonData::ma == 0);
+    CHECK(stats.living == 2);
+    CHECK(stats.d_ctr == 3);
+    CHECK(stats.copies == 0);
+    CHECK(stats.m_ctr == 0);
+    CHECK(stats.m_asgn == 1);
 }
 
 TEST_CASE("New object with nodes")
 {
-    clearAllCounters();
+    Pair::lifetime_stats sPair;
+    Employee::lifetime_stats sEmployee;
+    PersonData::lifetime_stats sPersonData;
+    doctest::util::lifetime_counter_sentry lsp(sPair), lse(sEmployee), pspd(sPersonData);
 
     // if we only edit leaves, there should be no clones whatsoever
     Node<Pair> p;
-    CHECK(LC<Pair>::alive == 1);
-    CHECK(LC<Pair>::dc == 1);
-    CHECK(LC<Employee>::alive == 2);
-    CHECK(LC<Employee>::dc == 2);
-    CHECK(LC<PersonData>::alive == 2);
-    CHECK(LC<PersonData>::dc == 2);
+    CHECK(sPair.living == 1);
+    CHECK(sPair.d_ctr == 1);
+    CHECK(sEmployee.living == 2);
+    CHECK(sEmployee.d_ctr == 2);
+    CHECK(sPersonData.living == 2);
+    CHECK(sPersonData.d_ctr == 2);
 
     auto apl = p->a.payload();
     auto adatapl = p->a->data.payload();
@@ -128,24 +126,21 @@ TEST_CASE("New object with nodes")
     CHECK(apl == p->a.payload());
     CHECK(adatapl == p->a->data.payload());
 
-    CHECK(LC<Pair>::alive == 1);
-    CHECK(LC<Pair>::dc == 1);
-    CHECK(LC<Pair>::cc == 0);
-    CHECK(LC<Pair>::mc == 0);
-    CHECK(LC<Pair>::ca == 0);
-    CHECK(LC<Pair>::ma == 0);
-    CHECK(LC<Employee>::alive == 2);
-    CHECK(LC<Employee>::dc == 2);
-    CHECK(LC<Employee>::cc == 0);
-    CHECK(LC<Employee>::mc == 0);
-    CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 0);
-    CHECK(LC<PersonData>::alive == 2);
-    CHECK(LC<PersonData>::dc == 2);
-    CHECK(LC<PersonData>::cc == 0);
-    CHECK(LC<PersonData>::mc == 0);
-    CHECK(LC<PersonData>::ca == 0);
-    CHECK(LC<PersonData>::ma == 0);
+    CHECK(sPair.living == 1);
+    CHECK(sPair.d_ctr == 1);
+    CHECK(sPair.copies == 0);
+    CHECK(sPair.m_ctr == 0);
+    CHECK(sPair.m_asgn == 0);
+    CHECK(sEmployee.living == 2);
+    CHECK(sEmployee.d_ctr == 2);
+    CHECK(sEmployee.copies == 0);
+    CHECK(sEmployee.m_ctr == 0);
+    CHECK(sEmployee.m_asgn == 0);
+    CHECK(sPersonData.living == 2);
+    CHECK(sPersonData.d_ctr == 2);
+    CHECK(sPersonData.copies == 0);
+    CHECK(sPersonData.m_ctr == 0);
+    CHECK(sPersonData.m_asgn == 0);
 
     p->a = Employee{};
     CHECK(apl == p->a.payload());
@@ -153,24 +148,21 @@ TEST_CASE("New object with nodes")
     CHECK(p->a->data->name.empty());
     CHECK(p->a->salary == 0);
 
-    CHECK(LC<Pair>::alive == 1);
-    CHECK(LC<Pair>::dc == 1);
-    CHECK(LC<Pair>::cc == 0);
-    CHECK(LC<Pair>::mc == 0);
-    CHECK(LC<Pair>::ca == 0);
-    CHECK(LC<Pair>::ma == 0);
-    CHECK(LC<Employee>::alive == 2);
-    CHECK(LC<Employee>::dc == 3);
-    CHECK(LC<Employee>::cc == 0);
-    CHECK(LC<Employee>::mc == 0);
-    CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 1);
-    CHECK(LC<PersonData>::alive == 3);
-    CHECK(LC<PersonData>::dc == 3);
-    CHECK(LC<PersonData>::cc == 0);
-    CHECK(LC<PersonData>::mc == 0);
-    CHECK(LC<PersonData>::ca == 0);
-    CHECK(LC<PersonData>::ma == 0);
+    CHECK(sPair.living == 1);
+    CHECK(sPair.d_ctr == 1);
+    CHECK(sPair.copies == 0);
+    CHECK(sPair.m_ctr == 0);
+    CHECK(sPair.m_asgn == 0);
+    CHECK(sEmployee.living == 2);
+    CHECK(sEmployee.d_ctr == 3);
+    CHECK(sEmployee.copies == 0);
+    CHECK(sEmployee.m_ctr == 0);
+    CHECK(sEmployee.m_asgn == 1);
+    CHECK(sPersonData.living == 3);
+    CHECK(sPersonData.d_ctr == 3);
+    CHECK(sPersonData.copies == 0);
+    CHECK(sPersonData.m_ctr == 0);
+    CHECK(sPersonData.m_asgn == 0);
 
     Node<Employee> c;
     c->data->name = "Charlie";
@@ -182,54 +174,53 @@ TEST_CASE("New object with nodes")
     CHECK(p->a->data->name == "Charlie");
     CHECK(p->a->data->age == 22);
 
-    CHECK(LC<Employee>::alive == 3);
+    CHECK(sEmployee.living == 3);
     apl.reset();
-    CHECK(LC<Employee>::alive == 2);
-    CHECK(LC<Employee>::dc == 4);
-    CHECK(LC<Employee>::cc == 0);
-    CHECK(LC<Employee>::mc == 0);
-    CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 1);
-    CHECK(LC<PersonData>::alive == 3);
-    CHECK(LC<PersonData>::dc == 4);
-    CHECK(LC<PersonData>::cc == 0);
-    CHECK(LC<PersonData>::mc == 0);
-    CHECK(LC<PersonData>::ca == 0);
-    CHECK(LC<PersonData>::ma == 0);
+    CHECK(sEmployee.living == 2);
+    CHECK(sEmployee.d_ctr == 4);
+    CHECK(sEmployee.copies == 0);
+    CHECK(sEmployee.m_ctr == 0);
+    CHECK(sEmployee.m_asgn == 1);
+    CHECK(sPersonData.living == 3);
+    CHECK(sPersonData.d_ctr == 4);
+    CHECK(sPersonData.copies == 0);
+    CHECK(sPersonData.m_ctr == 0);
+    CHECK(sPersonData.m_asgn == 0);
 }
 
 TEST_CASE("Variable objects")
 {
-    clearAllCounters();
+    Company::lifetime_stats sCompany;
+    Employee::lifetime_stats sEmployee;
+    Boss::lifetime_stats sBoss;
+    doctest::util::lifetime_counter_sentry lsc(sCompany), lsb(sBoss), lse(sEmployee);
+
     Node<Company> acme;
     acme->staff.resize(2);
 
-    CHECK(LC<Employee>::alive == 2);
-    CHECK(LC<Employee>::dc == 2);
-    CHECK(LC<Employee>::cc == 0);
-    CHECK(LC<Employee>::mc == 0);
-    CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 0);
+    CHECK(sEmployee.living == 2);
+    CHECK(sEmployee.d_ctr == 2);
+    CHECK(sEmployee.copies == 0);
+    CHECK(sEmployee.m_ctr == 0);
+    CHECK(sEmployee.m_asgn == 0);
 
     acme->staff.resize(10);
 
-    CHECK(LC<Employee>::alive == 10);
-    CHECK(LC<Employee>::dc == 10);
-    CHECK(LC<Employee>::cc == 0);
-    CHECK(LC<Employee>::mc == 0);
-    CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 0);
+    CHECK(sEmployee.living == 10);
+    CHECK(sEmployee.d_ctr == 10);
+    CHECK(sEmployee.copies == 0);
+    CHECK(sEmployee.m_ctr == 0);
+    CHECK(sEmployee.m_asgn == 0);
 
     CHECK(!acme->cto);
 
     acme->cto = Node<Boss>();
 
-    CHECK(LC<Boss>::alive == 2);
-    CHECK(LC<Boss>::dc == 2);
-    CHECK(LC<Boss>::cc == 0);
-    CHECK(LC<Boss>::mc == 0);
-    CHECK(LC<Boss>::ca == 0);
-    CHECK(LC<Boss>::ma == 0);
+    CHECK(sBoss.living == 2);
+    CHECK(sBoss.d_ctr == 2);
+    CHECK(sBoss.copies == 0);
+    CHECK(sBoss.m_ctr == 0);
+    CHECK(sBoss.m_asgn == 0);
 
     acme->ceo->data->name = "Jeff";
     acme->ceo->blob = std::make_unique<std::vector<int>>(10);
@@ -239,17 +230,18 @@ TEST_CASE("Variable objects")
 
 TEST_CASE("Basic state")
 {
-    clearAllCounters();
+    Pair::lifetime_stats sPair;
+    doctest::util::lifetime_counter_sentry lsp(sPair);
+
     State state = Node<Pair>{};
 
     auto pre = state.detach();
 
-    CHECK(LC<Pair>::alive == 1);
-    CHECK(LC<Pair>::dc == 1);
-    CHECK(LC<Pair>::cc == 0);
-    CHECK(LC<Pair>::mc == 0);
-    CHECK(LC<Pair>::ca == 0);
-    CHECK(LC<Pair>::ma == 0);
+    CHECK(sPair.living == 1);
+    CHECK(sPair.d_ctr == 1);
+    CHECK(sPair.copies == 0);
+    CHECK(sPair.m_ctr == 0);
+    CHECK(sPair.m_asgn == 0);
 
     auto mod = state.beginTransaction();
     mod->a->data->name = "Alice";
@@ -269,124 +261,126 @@ TEST_CASE("Basic state")
 
 TEST_CASE("Complex state")
 {
-    clearAllCounters();
+    Company::lifetime_stats sCompany;
+    Employee::lifetime_stats sEmployee;
+    doctest::util::lifetime_counter_sentry lsc(sCompany), lse(sEmployee);
+
     State state = Node<Company>{};
-    CHECK(LC<Company>::alive == 1);
-    CHECK(LC<Company>::dc == 1);
-    CHECK(LC<Company>::cc == 0);
-    CHECK(LC<Company>::mc == 0);
-    CHECK(LC<Company>::ca == 0);
-    CHECK(LC<Company>::ma == 0);
+    CHECK(sCompany.living == 1);
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sCompany.copies == 0);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sCompany.m_asgn == 0);
 
     auto mod = state.beginTransaction();
     mod->staff.resize(5);
     state.endTransaction();
 
-    CHECK(LC<Company>::alive == 1);
-    CHECK(LC<Company>::dc == 1);
-    CHECK(LC<Company>::cc == 1);
-    CHECK(LC<Company>::mc == 0);
-    CHECK(LC<Company>::ca == 0);
-    CHECK(LC<Company>::ma == 0);
+    CHECK(sCompany.living == 1);
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sCompany.copies == 1);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sCompany.m_asgn == 0);
 
     auto d = state.detach();
     CHECK(mod->staff.size() == 5);
 
-    CHECK(LC<Employee>::alive == 5);
-    CHECK(LC<Employee>::dc == 5);
-    CHECK(LC<Employee>::cc == 0);
-    CHECK(LC<Employee>::mc == 0);
-    CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 0);
+    CHECK(sEmployee.living == 5);
+    CHECK(sEmployee.d_ctr == 5);
+    CHECK(sEmployee.copies == 0);
+    CHECK(sEmployee.m_ctr == 0);
+    CHECK(sEmployee.m_asgn == 0);
 
     mod = state.beginTransaction();
     mod->staff.emplace(mod->staff.begin());
     state.endTransaction();
 
-    CHECK(LC<Employee>::alive == 6);
-    CHECK(LC<Employee>::dc == 6);
-    CHECK(LC<Employee>::cc == 0);
-    CHECK(LC<Employee>::mc == 0);
-    CHECK(LC<Employee>::ca == 0);
-    CHECK(LC<Employee>::ma == 0);
+    CHECK(sEmployee.living == 6);
+    CHECK(sEmployee.d_ctr == 6);
+    CHECK(sEmployee.copies == 0);
+    CHECK(sEmployee.m_ctr == 0);
+    CHECK(sEmployee.m_asgn == 0);
 
-    CHECK(LC<Company>::alive == 2); // one in state, one in d
-    CHECK(LC<Company>::dc == 1);
-    CHECK(LC<Company>::cc == 2);
-    CHECK(LC<Company>::mc == 0);
-    CHECK(LC<Company>::ca == 0);
-    CHECK(LC<Company>::ma == 0);
+    CHECK(sCompany.living == 2); // one in state, one in d
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sCompany.copies == 2);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sCompany.m_asgn == 0);
 }
 
 TEST_CASE("Interstate exchange")
 {
-    clearAllCounters();
+    Company::lifetime_stats sCompany;
+    Boss::lifetime_stats sBoss;
+    PersonData::lifetime_stats sPersonData;
+    doctest::util::lifetime_counter_sentry lsc(sCompany), lsb(sBoss), pspd(sPersonData);
+
     Node<Company> no;
 
-    CHECK(Company::alive == 1);
-    CHECK(Company::dc == 1);
-    CHECK(PersonData::alive == 1);
+    CHECK(sCompany.living == 1);
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sPersonData.living == 1);
 
     no->staff.emplace_back();
 
-    CHECK(Company::alive == 1);
-    CHECK(Company::dc == 1);
-    CHECK(Company::cc == 0);
-    CHECK(Company::mc == 0);
-    CHECK(PersonData::alive == 2);
-    CHECK(PersonData::dc == 2);
-    CHECK(PersonData::cc == 0);
+    CHECK(sCompany.living == 1);
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sCompany.copies == 0);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sPersonData.living == 2);
+    CHECK(sPersonData.d_ctr == 2);
+    CHECK(sPersonData.copies == 0);
 
     State state(std::move(no));
 
-    CHECK(Company::alive == 1);
-    CHECK(Company::dc == 1);
-    CHECK(Company::cc == 0);
-    CHECK(Company::mc == 0);
-    CHECK(PersonData::alive == 2);
-    CHECK(PersonData::dc == 2);
-    CHECK(PersonData::cc == 0);
+    CHECK(sCompany.living == 1);
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sCompany.copies == 0);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sPersonData.living == 2);
+    CHECK(sPersonData.d_ctr == 2);
+    CHECK(sPersonData.copies == 0);
 
     Node<Boss> boss = *state.detach()->ceo;
 
-    CHECK(Company::alive == 1);
-    CHECK(Company::dc == 1);
-    CHECK(Company::cc == 0);
-    CHECK(Company::mc == 0);
-    CHECK(PersonData::alive == 2);
-    CHECK(PersonData::dc == 2);
-    CHECK(PersonData::cc == 0);
-    CHECK(Boss::alive == 2);
-    CHECK(Boss::dc == 1);
-    CHECK(Boss::cc == 1);
+    CHECK(sCompany.living == 1);
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sCompany.copies == 0);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sPersonData.living == 2);
+    CHECK(sPersonData.d_ctr == 2);
+    CHECK(sPersonData.copies == 0);
+    CHECK(sBoss.living == 2);
+    CHECK(sBoss.d_ctr == 1);
+    CHECK(sBoss.copies == 1);
 
     boss->data->name = "Bill";
 
-    CHECK(Company::alive == 1);
-    CHECK(Company::dc == 1);
-    CHECK(Company::cc == 0);
-    CHECK(Company::mc == 0);
-    CHECK(PersonData::alive == 3);
-    CHECK(PersonData::dc == 2);
-    CHECK(PersonData::cc == 1);
-    CHECK(Boss::alive == 2);
-    CHECK(Boss::dc == 1);
-    CHECK(Boss::cc == 1);
+    CHECK(sCompany.living == 1);
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sCompany.copies == 0);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sPersonData.living == 3);
+    CHECK(sPersonData.d_ctr == 2);
+    CHECK(sPersonData.copies == 1);
+    CHECK(sBoss.living == 2);
+    CHECK(sBoss.d_ctr == 1);
+    CHECK(sBoss.copies == 1);
 
     auto t = state.beginTransaction();
     t->ceo = std::move(boss);
     state.endTransaction();
 
-    CHECK(Company::alive == 1);
-    CHECK(Company::dc == 1);
-    CHECK(Company::cc == 1);
-    CHECK(Company::mc == 0);
-    CHECK(PersonData::alive == 2);
-    CHECK(PersonData::dc == 2);
-    CHECK(PersonData::cc == 1);
-    CHECK(Boss::alive == 1);
-    CHECK(Boss::dc == 1);
-    CHECK(Boss::cc == 1);
+    CHECK(sCompany.living == 1);
+    CHECK(sCompany.d_ctr == 1);
+    CHECK(sCompany.copies == 1);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sPersonData.living == 2);
+    CHECK(sPersonData.d_ctr == 2);
+    CHECK(sPersonData.copies == 1);
+    CHECK(sBoss.living == 1);
+    CHECK(sBoss.d_ctr == 1);
+    CHECK(sBoss.copies == 1);
 
     State other = Node<Company>{};
 
@@ -394,29 +388,29 @@ TEST_CASE("Interstate exchange")
     t->ceo = Node<Boss>(*state.detach()->ceo);
     other.endTransaction();
 
-    CHECK(Company::alive == 2);
-    CHECK(Company::dc == 2);
-    CHECK(Company::cc == 2);
-    CHECK(Company::mc == 0);
-    CHECK(PersonData::alive == 2);
-    CHECK(PersonData::dc == 3);
-    CHECK(PersonData::cc == 1);
-    CHECK(Boss::alive == 2);
-    CHECK(Boss::dc == 2);
-    CHECK(Boss::cc == 2);
+    CHECK(sCompany.living == 2);
+    CHECK(sCompany.d_ctr == 2);
+    CHECK(sCompany.copies == 2);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sPersonData.living == 2);
+    CHECK(sPersonData.d_ctr == 3);
+    CHECK(sPersonData.copies == 1);
+    CHECK(sBoss.living == 2);
+    CHECK(sBoss.d_ctr == 2);
+    CHECK(sBoss.copies == 2);
 
     t = other.beginTransaction();
     t->ceo->data->name = "Steve";
     other.endTransaction();
 
-    CHECK(Company::alive == 2);
-    CHECK(Company::dc == 2);
-    CHECK(Company::cc == 3);
-    CHECK(Company::mc == 0);
-    CHECK(PersonData::alive == 3);
-    CHECK(PersonData::dc == 3);
-    CHECK(PersonData::cc == 2);
-    CHECK(Boss::alive == 2);
-    CHECK(Boss::dc == 2);
-    CHECK(Boss::cc == 3);
+    CHECK(sCompany.living == 2);
+    CHECK(sCompany.d_ctr == 2);
+    CHECK(sCompany.copies == 3);
+    CHECK(sCompany.m_ctr == 0);
+    CHECK(sPersonData.living == 3);
+    CHECK(sPersonData.d_ctr == 3);
+    CHECK(sPersonData.copies == 2);
+    CHECK(sBoss.living == 2);
+    CHECK(sBoss.d_ctr == 2);
+    CHECK(sBoss.copies == 3);
 }
