@@ -5,7 +5,7 @@
 
 #include "Node.hpp"
 
-#include "impl/instanse_of.hpp"
+#include <itlib/type_traits.hpp>
 
 namespace kuzco
 {
@@ -333,7 +333,7 @@ template <typename WrappedVector>
 class Vector : public VectorImpl<WrappedVector>
 {
 public:
-    static_assert(!impl::instance_of_v<kuzco::Node, typename WrappedVector::value_type>, "Vectors of nodes are unsafe. You likely need NodeVector in this case");
+    static_assert(!itlib::is_instantiation_of_v<kuzco::Node, typename WrappedVector::value_type>, "Vectors of nodes are unsafe. You likely need NodeVector in this case");
     using Super = VectorImpl<WrappedVector>;
     using Super::VectorImpl;
     using Super::operator=;
