@@ -3,9 +3,7 @@
 #
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
-include(./get_cpm.cmake)
-
-CPMAddPackage(gh:iboB/doctest-util@0.0.5)
+CPMAddPackage(gh:iboB/doctest-util@0.0.6)
 CPMAddPackage(gh:iboB/xec@1.4.1)
 
 macro(add_kuzco_test test)
