@@ -15,7 +15,7 @@ add_kuzco_test(core
     t-NodeRef.cpp
     t-Kuzco.cpp
     t-MT.cpp
-    t-Handle.cpp
+    t-SharedState.cpp
 )
 
 add_kuzco_test(vector t-Vector.cpp)
