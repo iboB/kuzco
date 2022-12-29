@@ -3,6 +3,7 @@
 //
 #pragma once
 #include "Detached.hpp"
+#include <itlib/atomic_shared_ptr_storage.hpp>
 
 namespace kuzco
 {
@@ -14,17 +15,15 @@ template <typename T>
 class SharedState
 {
     using Payload = typename impl::Data<T>::Payload;
-    std::shared_ptr<Payload> m_state;
-    Payload* m_qstate = nullptr; // quick access pointer which dereferences of the internal shared pointer
+    std::shared_ptr<itlib::atomic_shared_ptr_storage<T>> m_stateStorage;
 
     SharedState(Payload payload)
-        : m_state(std::make_shared<Payload>(std::move(payload)))
-        , m_qstate(m_state.get())
+        : m_stateStorage(std::make_shared<itlib::atomic_shared_ptr_storage<T>>(std::move(payload)))
     {}
 
     void store(const Payload& payload)
     {
-        std::atomic_store_explicit(m_qstate, payload, std::memory_order_relaxed);
+        m_stateStorage->store(payload);
     }
 
     friend class State<T>;
@@ -33,23 +32,15 @@ public:
     SharedState() = default;
     SharedState(const SharedState&) = default;
     SharedState& operator=(const SharedState&) = default;
-    SharedState(SharedState&& other) noexcept
-        : m_state(std::move(other.m_state))
-        , m_qstate(other.m_qstate)
-    {
-        other.m_qstate = nullptr;
-    }
-    SharedState& operator=(SharedState&& other) noexcept
-    {
-        m_state = std::move(other.m_state);
-        m_qstate = other.m_qstate;
-        other.m_qstate = nullptr;
-    }
+    SharedState(SharedState&& other) noexcept = default;
+    SharedState& operator=(SharedState&& other) noexcept = default;
+
+    explicit operator bool() const { return !!m_stateStorage; }
 
     Detached<T> detach() const { return Detached(detachedPayload()); }
     std::shared_ptr<const T> detachedPayload() const
     {
-        return std::atomic_load_explicit(m_qstate, std::memory_order_relaxed);
+        return m_stateStorage->load();
     }
 };
 

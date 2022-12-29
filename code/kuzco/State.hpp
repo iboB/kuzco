@@ -7,6 +7,7 @@
 #include "SharedState.hpp"
 
 #include <mutex>
+#include <cassert>
 
 namespace kuzco
 {
@@ -16,8 +17,7 @@ class State
 {
 public:
     State(Node<T>&& obj)
-        : m_root(std::move(obj))
-        , m_sharedState(m_root.m_data.payload)
+        : m_sharedState(std::move(obj.m_data.payload))
     {}
 
     State(const Node<T>& obj)
@@ -33,25 +33,37 @@ public:
     T* beginTransaction()
     {
         m_transactionMutex.lock();
-        m_root.replaceWith(impl::Data<T>::construct(*m_root.m_data.qdata));
-        return m_root.m_data.qdata;
+        assert(!m_transactionRoot);
+
+        // unfortunate atomc load
+        // it's not needed since it always happens in a mutex lock
+        auto root = m_sharedState.detachedPayload();
+
+        m_transactionRoot = std::make_shared<T>(*root);
+        return m_transactionRoot.get();
     }
 
-    void endTransaction(bool store = true)
+    Detached<T> endTransaction(bool store = true)
     {
+        assert(m_transactionRoot);
+        std::shared_ptr<const T> ret;
+
         // update handle
         if (store)
         {
             // detach
-            m_sharedState.store(m_root.m_data.payload);
+            ret = m_transactionRoot;
+            m_sharedState.store(m_transactionRoot);
         }
         else
         {
             // abort transaction
-            m_root.m_data.payload = *m_sharedState.m_qstate;
-            m_root.m_data.qdata = m_root.m_data.payload.get();
+            ret = m_sharedState.detachedPayload();
         }
+
+        m_transactionRoot.reset();
         m_transactionMutex.unlock();
+        return ret;
     }
 
     Detached<T> detach() const { return m_sharedState.detach(); }
@@ -60,8 +72,9 @@ public:
     const SharedState<T>& sharedState() const { return m_sharedState; }
 
 private:
-    Node<T> m_root;
     std::mutex m_transactionMutex;
+    using PL = typename impl::Data<T>::Payload;
+    PL m_transactionRoot; // holder data for the current transaction
     SharedState<T> m_sharedState; // transaction safe root, atomically updated only after transaction ends
 };
 
