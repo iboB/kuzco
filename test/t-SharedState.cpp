@@ -19,7 +19,7 @@ TEST_CASE("Simple SharedState test")
     doctest::util::lifetime_counter_sentry sentry(stats);
 
     kuzco::State<HandleTestType> r1({});
-    auto ss1 = r1.sharedState();
+    auto sn1 = r1.sharedNode();
 
     {
         auto mut = r1.beginTransaction();
@@ -27,11 +27,11 @@ TEST_CASE("Simple SharedState test")
         r1.endTransaction();
     }
 
-    auto r = ss1.detach();
+    auto r = sn1.detach();
     CHECK(r->n == 123);
 
-    auto ss2 = r1.sharedState();
-    r = ss2.detach();
+    auto sn2 = r1.sharedNode();
+    r = sn2.detach();
     CHECK(r->n == 123);
 
     {
@@ -40,9 +40,9 @@ TEST_CASE("Simple SharedState test")
         r1.endTransaction();
     }
 
-    r = ss1.detach();
+    r = sn1.detach();
     CHECK(r->n == 456);
 
-    r = ss2.detach();
+    r = sn2.detach();
     CHECK(r->n == 456);
 }

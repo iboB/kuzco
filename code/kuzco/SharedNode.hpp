@@ -12,12 +12,12 @@ template <typename T>
 class State;
 
 template <typename T>
-class SharedState
+class SharedNode
 {
     using Payload = typename impl::DataHolder<T>::Payload;
     std::shared_ptr<itlib::atomic_shared_ptr_storage<T>> m_stateStorage;
 
-    SharedState(Payload payload)
+    SharedNode(Payload payload)
         : m_stateStorage(std::make_shared<itlib::atomic_shared_ptr_storage<T>>(std::move(payload)))
     {}
 
@@ -29,11 +29,11 @@ class SharedState
     friend class State<T>;
 
 public:
-    SharedState() = default;
-    SharedState(const SharedState&) = default;
-    SharedState& operator=(const SharedState&) = default;
-    SharedState(SharedState&& other) noexcept = default;
-    SharedState& operator=(SharedState&& other) noexcept = default;
+    SharedNode() = default;
+    SharedNode(const SharedNode&) = default;
+    SharedNode& operator=(const SharedNode&) = default;
+    SharedNode(SharedNode&& other) noexcept = default;
+    SharedNode& operator=(SharedNode&& other) noexcept = default;
 
     explicit operator bool() const { return !!m_stateStorage; }
 
