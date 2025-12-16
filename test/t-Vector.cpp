@@ -78,15 +78,15 @@ void testState()
 
         {
             auto t = state.transaction();
-            auto i = t->vec.insert(t->vec.cbegin(), 53);
-            CHECK(i == t->vec.cbegin());
+            auto ii = t->vec.insert(t->vec.cbegin(), 53);
+            CHECK(ii == t->vec.cbegin());
         }
         CHECK(state.detach()->vec.capacity() >= 3);
 
         {
             auto t = state.transaction();
-            auto i = t->vec.insert(t->vec.cbegin() + 2, 90);
-            CHECK(i == t->vec.cbegin() + 2);
+            auto ii = t->vec.insert(t->vec.cbegin() + 2, 90);
+            CHECK(ii == t->vec.cbegin() + 2);
         }
 
         {
@@ -95,8 +95,8 @@ void testState()
         }
         {
             auto t = state.transaction();
-            auto i = t->vec.insert(t->vec.cend(), 6);
-            CHECK(i == t->vec.cend() - 1);
+            auto ii = t->vec.insert(t->vec.cend(), 6);
+            CHECK(ii == t->vec.cend() - 1);
         }
         {
             auto t = state.transaction();
