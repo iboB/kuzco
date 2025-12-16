@@ -17,8 +17,7 @@ class Detached : public impl::DataHolder<const T>
 public:
     Detached(std::shared_ptr<const T> payload)
     {
-        this->m_data.qdata = payload.get();
-        this->m_data.payload = std::move(payload);
+        this->m_data = std::move(payload);
     }
 
     const T* get() const { return this->qget(); }
@@ -37,14 +36,12 @@ public:
 
     OptDetached(const Detached<T>& d)
     {
-        this->m_data.qdata = d.get();
-        this->m_data.payload = d.payload();
+        this->m_data = d.payload();
     }
 
     OptDetached(std::shared_ptr<const T> payload)
     {
-        this->m_data.qdata = payload.get();
-        this->m_data.payload = std::move(payload);
+        this->m_data = std::move(payload);
     }
 
     const T* get() const { return this->qget(); }

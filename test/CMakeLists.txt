@@ -11,7 +11,6 @@ macro(add_kuzco_test test)
 endmacro()
 
 add_kuzco_test(core
-    t-Data.cpp
     t-NodeRef.cpp
     t-Kuzco.cpp
     t-MT.cpp

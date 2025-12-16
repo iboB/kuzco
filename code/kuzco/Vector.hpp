@@ -72,7 +72,7 @@ public:
     {
         if (!this->unique())
         {
-            auto newVec = impl::Data<Wrapped>::construct(std::forward<Fwd>(fwd)...);
+            auto newVec = impl::DataHolder<Wrapped>::construct(std::forward<Fwd>(fwd)...);
             this->replaceWith(std::move(newVec));
         }
         else
@@ -85,7 +85,7 @@ public:
     {
         if (!this->unique())
         {
-            auto newVec = impl::Data<Wrapped>::construct(ilist);
+            auto newVec = impl::DataHolder<Wrapped>::construct(ilist);
             this->replaceWith(std::move(newVec));
         }
         else
@@ -150,10 +150,10 @@ public:
         {
             auto oldVec = this->qget();
             if (oldVec->capacity() >= cap) return; // nothing to do
-            auto newVec = impl::Data<Wrapped>::construct();
-            newVec.qdata->reserve(cap);
+            auto newVec = impl::DataHolder<Wrapped>::construct();
+            newVec->reserve(cap);
             for (auto& e : *oldVec) {
-                newVec.qdata->emplace_back(e);
+                newVec->emplace_back(e);
             }
             this->replaceWith(std::move(newVec));
         }
@@ -176,12 +176,12 @@ public:
             }
             else
             {
-                auto newVec = impl::Data<Wrapped>::construct();
-                newVec.qdata->reserve(count);
+                auto newVec = impl::DataHolder<Wrapped>::construct();
+                newVec->reserve(count);
                 for (auto& e : *oldVec) {
-                    newVec.qdata->emplace_back(e);
+                    newVec->emplace_back(e);
                 }
-                newVec.qdata->resize(count);
+                newVec->resize(count);
                 this->replaceWith(std::move(newVec));
             }
         }
@@ -204,13 +204,13 @@ public:
             }
             else
             {
-                auto newVec = impl::Data<Wrapped>::construct();
-                newVec.qdata->reserve(count);
+                auto newVec = impl::DataHolder<Wrapped>::construct();
+                newVec->reserve(count);
                 for (auto& e : *oldVec) {
-                    newVec.qdata->emplace_back(e);
+                    newVec->emplace_back(e);
                 }
-                while (newVec.qdata->size() != count) {
-                    newVec.qdata->push_back(val);
+                while (newVec->size() != count) {
+                    newVec->push_back(val);
                 }
                 this->replaceWith(std::move(newVec));
             }
@@ -225,7 +225,7 @@ public:
     {
         if (!this->unique())
         {
-            auto newVec = impl::Data<Wrapped>::construct();
+            auto newVec = impl::DataHolder<Wrapped>::construct();
             this->replaceWith(std::move(newVec));
         }
         else
@@ -290,7 +290,7 @@ private:
             , m_oldVec(b.qget())
             , m_pos(pos)
             , m_count(count)
-            , m_newVec(impl::Data<Wrapped>::construct())
+            , m_newVec(impl::DataHolder<Wrapped>::construct())
         {
             v().reserve(m_oldVec->size() + count);
             append_to(v(), m_oldVec->cbegin(), pos);
@@ -304,22 +304,22 @@ private:
 
         Wrapped& v()
         {
-            return *m_newVec.qdata;
+            return *m_newVec;
         }
 
         VectorImpl& m_v;
         Wrapped* m_oldVec;
         typename Wrapped::const_iterator m_pos;
         size_type m_count;
-        impl::Data<Wrapped> m_newVec;
+        impl::DataHolder<Wrapped>::Payload m_newVec;
     };
 
     iterator shrink(const_iterator pos, size_type by)
     {
         auto oldVec = this->qget();
         if (pos + by > oldVec->cend()) throw 0;
-        auto newVec = impl::Data<Wrapped>::construct();
-        auto& v = *newVec.qdata;
+        auto newVec = impl::DataHolder<Wrapped>::construct();
+        auto& v = *newVec;
         v.reserve(oldVec->size() - by);
         append_to(v, oldVec->cbegin(), pos);
         append_to(v, pos + by, oldVec->cend());

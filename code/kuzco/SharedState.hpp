@@ -14,7 +14,7 @@ class State;
 template <typename T>
 class SharedState
 {
-    using Payload = typename impl::Data<T>::Payload;
+    using Payload = typename impl::DataHolder<T>::Payload;
     std::shared_ptr<itlib::atomic_shared_ptr_storage<T>> m_stateStorage;
 
     SharedState(Payload payload)

@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
-
-#include "impl/Data.hpp"
 #include "impl/DataHolder.hpp"
 #include "Detached.hpp"
 
@@ -23,6 +21,8 @@ template <typename T>
 class BasicNode : public DataHolder<T>
 {
 public:
+    using typename DataHolder<T>::Payload;
+
     void attachTo(const BasicNode& n)
     {
         this->m_data = n.m_data;
@@ -54,7 +54,7 @@ protected:
 
     // replaces the object's data with new data
     // only valid in a trasaction and if not unique
-    void replaceWith(Data<T> data)
+    void replaceWith(Payload data)
     {
         this->m_data = std::move(data);
         m_unique = true; // we're replaced so we're once more unique
@@ -72,7 +72,7 @@ public:
     template <typename... Args, std::enable_if_t<std::is_constructible_v<T, Args...>, int> = 0>
     Node(Args&&... args)
     {
-        this->m_data = impl::Data<T>::construct(std::forward<Args>(args)...);
+        this->m_data = impl::DataHolder<T>::construct(std::forward<Args>(args)...);
         // T construction. Object is unique implicitly
     }
 
@@ -89,7 +89,7 @@ public:
         // BUT to make it work we must carry a copy function with the data, otherwise this won't compile for non-copyable objects
         // Sample code:
 
-        //if (!other.unique()) m_data = impl::Data<T>::construct(*other.get());
+        //if (!other.unique()) m_data = impl::DataHolder<T>::construct(*other.get());
         //else
         //{
         //    this->m_data = other.m_data;
@@ -107,7 +107,7 @@ public:
     Node& operator=(const Node& other) = delete;
     //{
     //    if (unique()) *qget() = *other.get();
-    //    else replaceWith(impl::Data<T>::construct(*other.get()));
+    //    else replaceWith(impl::DataHolder<T>::construct(*other.get()));
     //    return *this;
     //}
 
@@ -118,7 +118,7 @@ public:
     Node& operator=(U&& u)
     {
         if (this->unique()) *this->qget() = std::forward<U>(u); // modify the contents if unique
-        else this->replaceWith(impl::Data<T>::construct(std::forward<U>(u))); // otherwise replace
+        else this->replaceWith(impl::DataHolder<T>::construct(std::forward<U>(u))); // otherwise replace
         return *this;
     }
 
@@ -129,7 +129,7 @@ public:
 
     T* get()
     {
-        if (!this->unique()) this->replaceWith(impl::Data<T>::construct(*r().get()));
+        if (!this->unique()) this->replaceWith(impl::DataHolder<T>::construct(*r().get()));
         return this->qget();
     }
     T* operator->() { return get(); }
@@ -149,7 +149,7 @@ public:
     OptNode(const OptNode& other)
     {
         this->m_data = other.m_data;
-        if (this->m_data.qdata)
+        if (this->m_data)
         {
             // no point in making empty opt-nodes non-unique
             this->m_unique = false;
@@ -167,7 +167,7 @@ public:
 
     void reset() { this->m_data = {}; }
 
-    explicit operator bool() const { return !!this->m_data.qdata; }
+    explicit operator bool() const { return !!this->m_data; }
 
     const OptNode& r() const { return *this; }
     const T* get() const { return this->qget(); }
@@ -176,7 +176,7 @@ public:
 
     T* get()
     {
-        if (this->m_data.qdata && !this->unique()) this->replaceWith(impl::Data<T>::construct(*r().get()));
+        if (this->m_data.qdata && !this->unique()) this->replaceWith(impl::DataHolder<T>::construct(*r().get()));
         return this->qget();
     }
     T* operator->() { return get(); }
