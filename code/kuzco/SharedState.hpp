@@ -13,21 +13,21 @@ namespace kuzco
 {
 
 template <typename T>
-class State
+class SharedState
 {
 public:
-    State(Node<T>&& obj)
+    SharedState(Node<T>&& obj)
         : m_sharedNode(std::move(obj.m_data))
     {}
 
-    State(const Node<T>& obj)
-        : State(Node<T>(obj))
+    SharedState(const Node<T>& obj)
+        : SharedState(Node<T>(obj))
     {}
 
-    State(const State&) = delete;
-    State& operator=(const State&) = delete;
-    State(State&&) = delete;
-    State& operator=(State&&) = delete;
+    SharedState(const SharedState&) = delete;
+    SharedState& operator=(const SharedState&) = delete;
+    SharedState(SharedState&&) = delete;
+    SharedState& operator=(SharedState&&) = delete;
 
     // returns a non-const pointer to the underlying data
     T* beginTransaction()

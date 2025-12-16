@@ -1,7 +1,7 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
-#include <kuzco/State.hpp>
+#include <kuzco/SharedState.hpp>
 
 #include <doctest/doctest.h>
 #include <doctest/util/lifetime_counter.hpp>
@@ -233,7 +233,7 @@ TEST_CASE("Basic state")
     Pair::lifetime_stats sPair;
     doctest::util::lifetime_counter_sentry lsp(sPair);
 
-    State state = Node<Pair>{};
+    SharedState state = Node<Pair>{};
 
     auto pre = state.detach();
 
@@ -265,7 +265,7 @@ TEST_CASE("Complex state")
     Employee::lifetime_stats sEmployee;
     doctest::util::lifetime_counter_sentry lsc(sCompany), lse(sEmployee);
 
-    State state = Node<Company>{};
+    SharedState state = Node<Company>{};
     CHECK(sCompany.living == 1);
     CHECK(sCompany.d_ctr == 1);
     CHECK(sCompany.copies == 0);
@@ -331,7 +331,7 @@ TEST_CASE("Interstate exchange")
     CHECK(sPersonData.d_ctr == 2);
     CHECK(sPersonData.copies == 0);
 
-    State state(std::move(no));
+    SharedState state(std::move(no));
 
     CHECK(sCompany.living == 1);
     CHECK(sCompany.d_ctr == 1);
@@ -382,7 +382,7 @@ TEST_CASE("Interstate exchange")
     CHECK(sBoss.d_ctr == 1);
     CHECK(sBoss.copies == 1);
 
-    State other = Node<Company>{};
+    SharedState other = Node<Company>{};
 
     t = other.beginTransaction();
     t->ceo = Node<Boss>(*state.detach()->ceo);

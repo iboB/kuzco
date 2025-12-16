@@ -17,7 +17,7 @@ struct ndc
 
 int main()
 {
-    State<ndc> ri = Node<ndc>(3);
+    SharedState<ndc> ri = Node<ndc>(3);
     auto d = ri.detach();
     auto d2 = d;
 }

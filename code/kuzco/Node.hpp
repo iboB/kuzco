@@ -11,7 +11,7 @@ namespace kuzco
 {
 
 template <typename T>
-class State;
+class SharedState;
 
 namespace impl
 {
@@ -60,7 +60,7 @@ protected:
         m_unique = true; // we're replaced so we're once more unique
     }
 
-    friend class State<T>;
+    friend class SharedState<T>;
 };
 
 } // namespace impl

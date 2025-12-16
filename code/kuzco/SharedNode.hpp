@@ -9,7 +9,7 @@ namespace kuzco
 {
 
 template <typename T>
-class State;
+class SharedState;
 
 template <typename T>
 class SharedNode
@@ -26,7 +26,7 @@ class SharedNode
         m_stateStorage->store(payload);
     }
 
-    friend class State<T>;
+    friend class SharedState<T>;
 
 public:
     SharedNode() = default;

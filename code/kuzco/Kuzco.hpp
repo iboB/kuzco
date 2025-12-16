@@ -4,7 +4,7 @@
 #pragma once
 
 // core
-#include "State.hpp"
+#include "SharedState.hpp"
 
 // ext
 #include "Vector.hpp"

@@ -1,7 +1,7 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
-#include <kuzco/State.hpp>
+#include <kuzco/SharedState.hpp>
 
 #include <doctest/doctest.h>
 
@@ -102,7 +102,7 @@ struct SingleWriterTest
     std::vector<std::function<void(Company*)>> writes;
     std::vector<std::function<void(DState)>> reads;
 
-    std::unique_ptr<State<Company>> state;
+    std::unique_ptr<SharedState<Company>> state;
 };
 
 } // anonymous namespace
@@ -183,6 +183,6 @@ TEST_CASE("Single writer")
         },
     };
 
-    test.state.reset(new State(std::move(acme)));
+    test.state.reset(new SharedState(std::move(acme)));
     test.run();
 }
