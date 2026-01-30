@@ -63,7 +63,7 @@ public:
 
         m_transactionRoot.reset();
         m_transactionMutex.unlock();
-        return ret;
+        return Detached<T>(ret);
     }
 
     Detached<T> detach() const { return m_sharedNode.detach(); }

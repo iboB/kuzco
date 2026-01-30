@@ -188,4 +188,22 @@ public:
 template <typename T>
 using OptLeaf = OptNode<const T>;
 
+template <typename T, typename U>
+bool operator==(const OptDetached<T>& a, const impl::DataHolder<U>& b) noexcept {
+    return a.get() == b.qget();
+}
+template <typename T, typename U>
+bool operator!=(const OptDetached<T>& a, const impl::DataHolder<U>& b) noexcept {
+    return a.get() != b.qget();
+}
+template <typename T, typename U>
+bool operator==(const impl::DataHolder<T>& a, const OptDetached<U>& b) noexcept {
+    return a.get() == b.qget();
+}
+template <typename T, typename U>
+bool operator!=(const impl::DataHolder<T>& a, const OptDetached<U>& b) noexcept {
+    return a.get() != b.qget();
+}
+
+
 } // namespace kuzco
