@@ -17,7 +17,7 @@ class SharedState
 {
 public:
     SharedState(Node<T>&& obj)
-        : m_sharedNode(std::move(obj.m_data))
+        : m_sharedNode(std::move(obj.m_ptr))
     {}
 
     SharedState(const Node<T>& obj)
@@ -73,7 +73,7 @@ public:
 
 private:
     std::mutex m_transactionMutex;
-    using PL = typename impl::DataHolder<T>::Payload;
+    using PL = std::shared_ptr<T>;
     PL m_transactionRoot; // holder data for the current transaction
     SharedNode<T> m_sharedNode; // transaction safe root, atomically updated only after transaction ends
 };

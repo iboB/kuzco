@@ -31,7 +31,7 @@ public:
     friend class Node<T>;
     using Super = std::shared_ptr<const T>;
 
-    OptDetached() = default;
+    OptDetached() noexcept = default;
     OptDetached(const OptDetached&) noexcept = default;
     OptDetached& operator=(const OptDetached&) noexcept = default;
     OptDetached(OptDetached&&) noexcept = default;
@@ -77,7 +77,7 @@ public:
     }
 
 protected:
-    explicit OptDetached(std::shared_ptr<const T> payload)
+    explicit OptDetached(std::shared_ptr<const T> payload) noexcept
         : Super(std::move(payload))
     {}
 };
@@ -127,7 +127,7 @@ public:
     friend Detached<T> Create_Detached<T>(T&& value);
 
 private:
-    explicit Detached(std::shared_ptr<const T> payload)
+    explicit Detached(std::shared_ptr<const T> payload) noexcept
         : Super(std::move(payload))
     {}
 

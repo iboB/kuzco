@@ -30,7 +30,7 @@ public:
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Node& operator=(U&& u) { return m_node->operator=(std::forward<U>(u)); }
 
-    const Node& r() const { return m_node->r(); }
+    const T& r() const { return m_node->r(); }
 
     T* operator->() { return m_node->operator->(); }
     T& operator*() { return m_node->operator*(); }

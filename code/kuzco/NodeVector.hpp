@@ -52,7 +52,7 @@ public:
     {
         for (auto i = Super::begin(); i != Super::end(); ++i)
         {
-            if (f(*i->r()))
+            if (f(i->r()))
             {
                 return NodeRef<T>(*i);
             }

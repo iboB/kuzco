@@ -1,7 +1,7 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
-#include <kuzco/Kuzco.hpp>
+#include <alt/Node.hpp>
 
 #include <iostream>
 #include <thread>
@@ -17,7 +17,7 @@ struct ndc
 
 int main()
 {
-    SharedState<ndc> ri = Node<ndc>(3);
-    auto d = ri.detach();
-    auto d2 = d;
+    //SharedState<ndc> ri = Node<ndc>(3);
+    //auto d = ri.detach();
+    //auto d2 = d;
 }

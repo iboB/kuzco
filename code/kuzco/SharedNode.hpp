@@ -12,9 +12,8 @@ template <typename T>
 class SharedState;
 
 template <typename T>
-class SharedNode
-{
-    using Payload = typename impl::DataHolder<T>::Payload;
+class SharedNode {
+    using Payload = std::shared_ptr<T>;
     std::shared_ptr<itlib::atomic_shared_ptr_storage<T>> m_stateStorage;
 
     SharedNode(Payload payload)

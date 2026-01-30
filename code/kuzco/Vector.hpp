@@ -72,12 +72,11 @@ public:
     {
         if (!this->unique())
         {
-            auto newVec = impl::DataHolder<Wrapped>::construct(std::forward<Fwd>(fwd)...);
-            this->replaceWith(std::move(newVec));
+            this->m_ptr = std::make_shared<Wrapped>(std::forward<Fwd>(fwd)...);
         }
         else
         {
-            this->qget()->assign(std::forward<Fwd>(fwd)...);
+            this->m_ptr->assign(std::forward<Fwd>(fwd)...);
         }
     }
 
@@ -85,12 +84,11 @@ public:
     {
         if (!this->unique())
         {
-            auto newVec = impl::DataHolder<Wrapped>::construct(ilist);
-            this->replaceWith(std::move(newVec));
+            this->m_ptr = std::make_shared<Wrapped>(ilist);
         }
         else
         {
-            this->qget()->assign(ilist);
+            this->m_ptr->assign(ilist);
         }
     }
 
@@ -103,7 +101,7 @@ public:
         }
         else
         {
-            return this->qget()->insert(pos, val);
+            return this->m_ptr->insert(pos, val);
         }
     }
 
@@ -116,7 +114,7 @@ public:
         }
         else
         {
-            return this->qget()->insert(pos, ilist);
+            return this->m_ptr->insert(pos, ilist);
         }
     }
 
@@ -128,7 +126,7 @@ public:
         }
         else
         {
-            return this->qget()->erase(pos);
+            return this->m_ptr->erase(pos);
         }
     }
 
@@ -140,7 +138,7 @@ public:
         }
         else
         {
-            return this->qget()->erase(b, e);
+            return this->m_ptr->erase(b, e);
         }
     }
 
@@ -148,24 +146,23 @@ public:
     {
         if (!this->unique())
         {
-            auto oldVec = this->qget();
+            auto oldVec = this->m_ptr;
             if (oldVec->capacity() >= cap) return; // nothing to do
-            auto newVec = impl::DataHolder<Wrapped>::construct();
-            newVec->reserve(cap);
+            this->m_ptr = std::make_shared<Wrapped>();
+            this->m_ptr->reserve(cap);
             for (auto& e : *oldVec) {
-                newVec->emplace_back(e);
+                this->m_ptr->emplace_back(e);
             }
-            this->replaceWith(std::move(newVec));
         }
         else
         {
-            this->qget()->reserve(cap);
+            this->m_ptr->reserve(cap);
         }
     }
 
     void resize(size_type count)
     {
-        auto oldVec = this->qget();
+        auto oldVec = this->m_ptr;
         if (!this->unique())
         {
             if (oldVec->size() == count) return; // nothing to do
@@ -176,13 +173,12 @@ public:
             }
             else
             {
-                auto newVec = impl::DataHolder<Wrapped>::construct();
-                newVec->reserve(count);
+                this->m_ptr = std::make_shared<Wrapped>();
+                this->m_ptr->reserve(count);
                 for (auto& e : *oldVec) {
-                    newVec->emplace_back(e);
+                    this->m_ptr->emplace_back(e);
                 }
-                newVec->resize(count);
-                this->replaceWith(std::move(newVec));
+                this->m_ptr->resize(count);
             }
         }
         else
@@ -193,7 +189,7 @@ public:
 
     void resize(size_type count, const value_type& val)
     {
-        auto oldVec = this->qget();
+        auto oldVec = this->m_ptr;
         if (!this->unique())
         {
             if (oldVec->size() == count) return; // nothing to do
@@ -204,15 +200,14 @@ public:
             }
             else
             {
-                auto newVec = impl::DataHolder<Wrapped>::construct();
-                newVec->reserve(count);
+                this->m_ptr = std::make_shared<Wrapped>();
+                this->m_ptr->reserve(count);
                 for (auto& e : *oldVec) {
-                    newVec->emplace_back(e);
+                    this->m_ptr->emplace_back(e);
                 }
-                while (newVec->size() != count) {
-                    newVec->push_back(val);
+                while (this->m_ptr->size() != count) {
+                    this->m_ptr->push_back(val);
                 }
-                this->replaceWith(std::move(newVec));
             }
         }
         else
@@ -225,12 +220,11 @@ public:
     {
         if (!this->unique())
         {
-            auto newVec = impl::DataHolder<Wrapped>::construct();
-            this->replaceWith(std::move(newVec));
+            this->m_ptr = std::make_shared<Wrapped>();
         }
         else
         {
-            this->qget()->clear();
+            this->m_ptr->clear();
         }
     }
 
@@ -238,18 +232,18 @@ public:
     value_type& emplace_back(Args&&... args)
     {
         prepare_add_one();
-        return this->qget()->emplace_back(std::forward<Args>(args)...);
+        return this->m_ptr->emplace_back(std::forward<Args>(args)...);
     }
 
     void push_back(const value_type& val)
     {
         prepare_add_one();
-        this->qget()->push_back(val);
+        this->m_ptr->push_back(val);
     }
 
     void pop_back()
     {
-        auto oldVec = this->qget();
+        auto oldVec = this->m_ptr;
         if (!this->unique())
         {
             shrink(end() - 1, 1);
@@ -279,7 +273,7 @@ private:
     {
         if (this->unique()) return;
 
-        inserter i(*this, this->qget()->cend(), 1);
+        inserter i(*this, this->m_ptr->cend(), 1);
     }
 
     // used by insert/emplace
@@ -287,10 +281,10 @@ private:
     {
         inserter(VectorImpl& b, typename Wrapped::const_iterator pos, size_type count)
             : m_v(b)
-            , m_oldVec(b.qget())
+            , m_oldVec(b.m_ptr.get())
             , m_pos(pos)
             , m_count(count)
-            , m_newVec(impl::DataHolder<Wrapped>::construct())
+            , m_newVec(std::make_shared<Wrapped>())
         {
             v().reserve(m_oldVec->size() + count);
             append_to(v(), m_oldVec->cbegin(), pos);
@@ -299,7 +293,7 @@ private:
         ~inserter()
         {
             append_to(v(), m_pos, m_oldVec->cend());
-            m_v.replaceWith(std::move(m_newVec));
+            m_v.m_ptr = std::move(m_newVec);
         }
 
         Wrapped& v()
@@ -311,20 +305,19 @@ private:
         Wrapped* m_oldVec;
         typename Wrapped::const_iterator m_pos;
         size_type m_count;
-        impl::DataHolder<Wrapped>::Payload m_newVec;
+        std::shared_ptr<Wrapped> m_newVec;
     };
 
     iterator shrink(const_iterator pos, size_type by)
     {
-        auto oldVec = this->qget();
+        auto oldVec = this->m_ptr;
         if (pos + by > oldVec->cend()) throw 0;
-        auto newVec = impl::DataHolder<Wrapped>::construct();
-        auto& v = *newVec;
+        this->m_ptr = std::make_shared<Wrapped>();
+        auto& v = *this->m_ptr;
         v.reserve(oldVec->size() - by);
         append_to(v, oldVec->cbegin(), pos);
         append_to(v, pos + by, oldVec->cend());
         auto ret = v.begin() + (pos - oldVec->cbegin());
-        this->replaceWith(std::move(newVec));
         return ret;
     }
 };

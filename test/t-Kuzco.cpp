@@ -106,8 +106,8 @@ TEST_CASE("New object with nodes")
     CHECK(sPersonData.living == 2);
     CHECK(sPersonData.d_ctr == 2);
 
-    auto apl = p->a.payload();
-    auto adatapl = p->a->data.payload();
+    auto apl = p->a.get();
+    auto adatapl = p->a->data.get();
     CHECK(apl->data->name.empty());
     p->a->data->name = "Alice";
     p->a->data->age = 30;
@@ -123,8 +123,8 @@ TEST_CASE("New object with nodes")
     CHECK(p->b->data->name == "Bob");
     CHECK(p->b->salary == 64.6);
 
-    CHECK(apl == p->a.payload());
-    CHECK(adatapl == p->a->data.payload());
+    CHECK(apl == p->a.get());
+    CHECK(adatapl == p->a->data.get());
 
     CHECK(sPair.living == 1);
     CHECK(sPair.d_ctr == 1);
@@ -143,8 +143,8 @@ TEST_CASE("New object with nodes")
     CHECK(sPersonData.m_asgn == 0);
 
     p->a = Employee{};
-    CHECK(apl == p->a.payload());
-    CHECK(adatapl != p->a->data.payload());
+    CHECK(apl == p->a.get());
+    CHECK(adatapl != p->a->data.get());
     CHECK(p->a->data->name.empty());
     CHECK(p->a->salary == 0);
 
@@ -158,7 +158,7 @@ TEST_CASE("New object with nodes")
     CHECK(sEmployee.copies == 0);
     CHECK(sEmployee.m_ctr == 0);
     CHECK(sEmployee.m_asgn == 1);
-    CHECK(sPersonData.living == 3);
+    CHECK(sPersonData.living == 2);
     CHECK(sPersonData.d_ctr == 3);
     CHECK(sPersonData.copies == 0);
     CHECK(sPersonData.m_ctr == 0);
@@ -174,14 +174,12 @@ TEST_CASE("New object with nodes")
     CHECK(p->a->data->name == "Charlie");
     CHECK(p->a->data->age == 22);
 
-    CHECK(sEmployee.living == 3);
-    apl.reset();
     CHECK(sEmployee.living == 2);
     CHECK(sEmployee.d_ctr == 4);
     CHECK(sEmployee.copies == 0);
     CHECK(sEmployee.m_ctr == 0);
     CHECK(sEmployee.m_asgn == 1);
-    CHECK(sPersonData.living == 3);
+    CHECK(sPersonData.living == 2);
     CHECK(sPersonData.d_ctr == 4);
     CHECK(sPersonData.copies == 0);
     CHECK(sPersonData.m_ctr == 0);
@@ -225,7 +223,7 @@ TEST_CASE("Variable objects")
     acme->ceo->data->name = "Jeff";
     acme->ceo->blob = std::make_unique<std::vector<int>>(10);
     CHECK(acme->ceo->data->name == "Jeff");
-    CHECK((*acme->ceo.r()->blob)->size() == 10); // ugly syntax... but nothing we can do :(
+    CHECK((*acme->ceo.r().blob)->size() == 10); // ugly syntax... but nothing we can do :(
 }
 
 TEST_CASE("Basic state")
@@ -245,18 +243,18 @@ TEST_CASE("Basic state")
 
     auto mod = state.beginTransaction();
     mod->a->data->name = "Alice";
-    auto tempapl = mod->a.payload();
-    auto tempadatapl = mod->a->data.payload();
+    auto tempapl = mod->a.get();
+    auto tempadatapl = mod->a->data.get();
     mod->a->data->age = 104;
     state.endTransaction();
 
     auto post = state.detach();
 
     CHECK(pre != post);
-    CHECK(pre->b.payload() == post->b.payload());
-    CHECK(pre->a.payload() != post->a.payload());
-    CHECK(tempapl == post->a.payload());
-    CHECK(tempadatapl == post->a->data.payload());
+    CHECK(pre->b.get() == post->b.get());
+    CHECK(pre->a.get() != post->a.get());
+    CHECK(tempapl == post->a.get());
+    CHECK(tempadatapl == post->a->data.get());
 }
 
 TEST_CASE("Complex state")

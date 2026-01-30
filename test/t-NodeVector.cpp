@@ -65,7 +65,7 @@ TEST_CASE("modifiers")
 
         f = v.find_if([](const X& x) { return x.val == 8; });
         CHECK(!!f);
-        CHECK(f.r()->val == 8);
+        CHECK(f.r().val == 8);
 
         CHECK(stats.c_ctr == 1);
         CHECK(stats.d_ctr == 11);
