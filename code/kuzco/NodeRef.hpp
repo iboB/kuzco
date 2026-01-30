@@ -5,12 +5,15 @@
 
 #include "Node.hpp"
 
-namespace kuzco
-{
+namespace kuzco {
 
+// why is this needed?
+// this wraps a node pointer
+// note that you can't just use a Node copy of another node - that would make it non-unique
+// alternatively if you use Node*, this is perfectly safe, but accessing the inner data is clunky
+// (*ptr)->member or **ptr
 template <typename T>
-class NodeRef
-{
+class NodeRef {
 public:
     using Node = kuzco::Node<T>;
 
@@ -36,4 +39,4 @@ private:
     Node* m_node = nullptr;
 };
 
-}
+} // namespace kuzco
