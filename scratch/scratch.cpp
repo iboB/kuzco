@@ -1,7 +1,7 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
-#include <alt/Node.hpp>
+#include <kuzco/Node.hpp>
 
 #include <iostream>
 #include <thread>
