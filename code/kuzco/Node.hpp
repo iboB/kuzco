@@ -66,7 +66,7 @@ public:
     T* operator->() { return get(); }
     T& operator*() { return *get(); }
 
-    OptDetached<T> detach() const noexcept { return OptDetached<T>(m_ptr); }
+    Detached<T> detach() const noexcept { return Detached<T>(m_ptr); }
 
     auto operator<=>(const OptNode& other) const noexcept = default;
 protected:
@@ -105,28 +105,25 @@ public:
         Super::operator=(std::forward<U>(u));
         return *this;
     }
-
-    // replace OptNode's detach
-    Detached<T> detach() const noexcept { return Detached<T>(this->m_ptr); }
 protected:
     using Super::operator bool;
     using Super::reset;
 };
 
 template <typename T, typename U>
-bool operator==(const OptDetached<T>& a, const OptNode<U>& b) noexcept {
+bool operator==(const Detached<T>& a, const OptNode<U>& b) noexcept {
     return a.get() == b.get();
 }
 template <typename T, typename U>
-bool operator!=(const OptDetached<T>& a, const OptNode<U>& b) noexcept {
+bool operator!=(const Detached<T>& a, const OptNode<U>& b) noexcept {
     return a.get() != b.get();
 }
 template <typename T, typename U>
-bool operator==(const OptNode<T>& a, const OptDetached<U>& b) noexcept {
+bool operator==(const OptNode<T>& a, const Detached<U>& b) noexcept {
     return a.get() == b.get();
 }
 template <typename T, typename U>
-bool operator!=(const OptNode<T>& a, const OptDetached<U>& b) noexcept {
+bool operator!=(const OptNode<T>& a, const Detached<U>& b) noexcept {
     return a.get() != b.get();
 }
 

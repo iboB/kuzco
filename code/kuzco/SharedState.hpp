@@ -38,7 +38,7 @@ public:
 
     Detached<T> endTransaction(bool store = true) {
         assert(m_transactionRoot);
-        OptDetached<T> ret;
+        Detached<T> ret;
 
         // update handle
         if (store) {
@@ -65,7 +65,7 @@ private:
 
     std::mutex m_transactionMutex;
     OptNode<T> m_transactionRoot; // holder data for the current transaction
-    OptDetached<T> m_restoreState; // in case we want to restore to previous state
+    Detached<T> m_restoreState; // in case we want to restore to previous state
 };
 
 } // namespace kuzco
