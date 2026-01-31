@@ -72,7 +72,7 @@ public:
     {
         if (!this->unique())
         {
-            this->m_ptr = std::make_shared<Wrapped>(std::forward<Fwd>(fwd)...);
+            this->m_ptr = itlib::make_ref_ptr<Wrapped>(std::forward<Fwd>(fwd)...);
         }
         else
         {
@@ -84,7 +84,7 @@ public:
     {
         if (!this->unique())
         {
-            this->m_ptr = std::make_shared<Wrapped>(ilist);
+            this->m_ptr = itlib::make_ref_ptr<Wrapped>(ilist);
         }
         else
         {
@@ -148,7 +148,7 @@ public:
         {
             auto oldVec = this->m_ptr;
             if (oldVec->capacity() >= cap) return; // nothing to do
-            this->m_ptr = std::make_shared<Wrapped>();
+            this->m_ptr = itlib::make_ref_ptr<Wrapped>();
             this->m_ptr->reserve(cap);
             for (auto& e : *oldVec) {
                 this->m_ptr->emplace_back(e);
@@ -173,7 +173,7 @@ public:
             }
             else
             {
-                this->m_ptr = std::make_shared<Wrapped>();
+                this->m_ptr = itlib::make_ref_ptr<Wrapped>();
                 this->m_ptr->reserve(count);
                 for (auto& e : *oldVec) {
                     this->m_ptr->emplace_back(e);
@@ -200,7 +200,7 @@ public:
             }
             else
             {
-                this->m_ptr = std::make_shared<Wrapped>();
+                this->m_ptr = itlib::make_ref_ptr<Wrapped>();
                 this->m_ptr->reserve(count);
                 for (auto& e : *oldVec) {
                     this->m_ptr->emplace_back(e);
@@ -220,7 +220,7 @@ public:
     {
         if (!this->unique())
         {
-            this->m_ptr = std::make_shared<Wrapped>();
+            this->m_ptr = itlib::make_ref_ptr<Wrapped>();
         }
         else
         {
@@ -284,7 +284,7 @@ private:
             , m_oldVec(b.m_ptr.get())
             , m_pos(pos)
             , m_count(count)
-            , m_newVec(std::make_shared<Wrapped>())
+            , m_newVec(itlib::make_ref_ptr<Wrapped>())
         {
             v().reserve(m_oldVec->size() + count);
             append_to(v(), m_oldVec->cbegin(), pos);
@@ -305,14 +305,14 @@ private:
         Wrapped* m_oldVec;
         typename Wrapped::const_iterator m_pos;
         size_type m_count;
-        std::shared_ptr<Wrapped> m_newVec;
+        itlib::ref_ptr<Wrapped> m_newVec;
     };
 
     iterator shrink(const_iterator pos, size_type by)
     {
         auto oldVec = this->m_ptr;
         if (pos + by > oldVec->cend()) throw 0;
-        this->m_ptr = std::make_shared<Wrapped>();
+        this->m_ptr = itlib::make_ref_ptr<Wrapped>();
         auto& v = *this->m_ptr;
         v.reserve(oldVec->size() - by);
         append_to(v, oldVec->cbegin(), pos);

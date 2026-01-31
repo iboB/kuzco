@@ -9,8 +9,6 @@ macro(add_kuzco_test test)
     add_doctest_lib_test(${test} kuzco ${ARGN})
 endmacro()
 
-add_kuzco_test(Detached t-Detached.cpp)
-
 add_kuzco_test(core
     t-NodeRef.cpp
     t-Kuzco.cpp

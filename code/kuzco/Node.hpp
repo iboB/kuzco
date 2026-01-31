@@ -5,8 +5,12 @@
 #include "Detached.hpp"
 #include <memory>
 #include <type_traits>
+#include <stdexcept>
 
 namespace kuzco {
+
+template <typename T>
+class SharedNode;
 
 template <typename T>
 class OptNode {
@@ -39,7 +43,7 @@ public:
         }
         else {
             // otherwise replace
-            this->m_ptr = std::make_shared<T>(std::forward<U>(u));
+            this->m_ptr = itlib::make_ref_ptr<T>(std::forward<U>(u));
         }
         return *this;
     }
@@ -47,10 +51,10 @@ public:
     // note that this function is not const
     // a const node is considered detached and immutable, so uniqueness is irrelevant (and potentially racy)
     // the only source of refs (and thus uniqueness) is the state owner
-    // also note that his is equivalent to the now extinct std::shared_ptr::unique (use_count() == 1)
+    // oterwise this is equivalent to the now extinct std::shared_ptr::unique (use_count() == 1)
     // nullptr is not considered unique in our case
     bool unique() noexcept {
-        return m_ptr.use_count() == 1;
+        return m_ptr.unique();
     }
 
     // simple copy-on-write getters
@@ -59,20 +63,20 @@ public:
     // users are encouraged to wrap such operations in helper classes
     T* get() {
         if (m_ptr.use_count() > 1) {
-            m_ptr = std::make_shared<T>(*m_ptr);
+            m_ptr = itlib::make_ref_ptr_from(*m_ptr);
         }
         return m_ptr.get();
     }
     T* operator->() { return get(); }
     T& operator*() { return *get(); }
 
-    Detached<T> detach() const noexcept { return Detached<T>(m_ptr); }
+    Detached<T> detach() const noexcept { return m_ptr; }
 
     auto operator<=>(const OptNode& other) const noexcept = default;
 protected:
-    explicit OptNode(std::shared_ptr<T> ptr) : m_ptr(std::move(ptr)) {}
+    explicit OptNode(itlib::ref_ptr<T> ptr) : m_ptr(std::move(ptr)) {}
 
-    std::shared_ptr<T> m_ptr;
+    itlib::ref_ptr<T> m_ptr;
 
     friend class SharedNode<T>;
 };
@@ -84,7 +88,7 @@ public:
 
     template <typename... Args, std::enable_if_t<std::is_constructible_v<T, Args...>, int> = 0>
     Node(Args&&... args)
-        : Super(std::make_shared<T>(std::forward<Args>(args)...))
+        : Super(itlib::make_ref_ptr<T>(std::forward<Args>(args)...))
     {}
 
     explicit Node(OptNode<T> other)

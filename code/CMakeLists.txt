@@ -8,7 +8,7 @@ target_include_directories(kuzco INTERFACE .)
 
 # packages
 find_package(Threads REQUIRED)
-CPMAddPackage(gh:iboB/itlib@1.12.0)
+CPMAddPackage(gh:iboB/itlib@1.12.1)
 
 target_link_libraries(kuzco INTERFACE
     itlib::itlib

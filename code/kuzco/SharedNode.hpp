@@ -17,7 +17,7 @@ class SharedNode {
     std::shared_ptr<Storage> m_stateStorage;
 public:
     SharedNode(Node<T> node)
-        : m_stateStorage(std::make_shared<Storage>(std::move(node.m_ptr)))
+        : m_stateStorage(std::make_shared<Storage>(std::move(node.m_ptr)._as_shared_ptr_unsafe()))
     {}
 
     SharedNode() = default;
@@ -29,10 +29,10 @@ public:
     explicit operator bool() const { return !!m_stateStorage; }
 
     Detached<T> detach() const {
-        return Detached<T>(m_stateStorage->load());
+        return Detached<T>::_from_shared_ptr_unsafe(m_stateStorage->load());
     }
     void store(Node<T> node) {
-        m_stateStorage->store(std::move(node.m_ptr));
+        m_stateStorage->store(std::move(node.m_ptr)._as_shared_ptr_unsafe());
     }
 };
 
