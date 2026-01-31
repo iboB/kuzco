@@ -9,9 +9,6 @@
 namespace kuzco {
 
 template <typename T>
-class SharedState;
-
-template <typename T>
 class OptNode {
 public:
     OptNode() = default;
@@ -76,6 +73,8 @@ protected:
     explicit OptNode(std::shared_ptr<T> ptr) : m_ptr(std::move(ptr)) {}
 
     std::shared_ptr<T> m_ptr;
+
+    friend class SharedNode<T>;
 };
 
 template <typename T>
@@ -87,6 +86,14 @@ public:
     Node(Args&&... args)
         : Super(std::make_shared<T>(std::forward<Args>(args)...))
     {}
+
+    explicit Node(OptNode<T> other)
+        : Super(std::move(other))
+    {
+        if (!this->m_ptr) {
+            throw std::runtime_error("Cannot construct Node from null OptNode");
+        }
+    }
 
     Node(const Node&) = default;
     Node& operator=(const Node&) = default;
@@ -102,7 +109,6 @@ public:
     // replace OptNode's detach
     Detached<T> detach() const noexcept { return Detached<T>(this->m_ptr); }
 protected:
-    friend class SharedState<T>;
     using Super::operator bool;
     using Super::reset;
 };

@@ -10,6 +10,8 @@ namespace kuzco {
 template <typename T>
 class Node;
 template <typename T>
+class OptNode;
+template <typename T>
 class SharedNode;
 template <typename T>
 class SharedState;
@@ -28,7 +30,9 @@ template <typename T>
 class OptDetached : private std::shared_ptr<const T> {
 public:
     template <typename U> friend class OptDetached;
+    friend class OptNode<T>;
     friend class Node<T>;
+    friend class SharedNode<T>;
     using Super = std::shared_ptr<const T>;
 
     OptDetached() noexcept = default;
@@ -83,11 +87,16 @@ protected:
 };
 
 template <typename T>
+class Detached;
+
+template <typename T>
+Detached<T> Create_Detached(T&& value);
+
+template <typename T>
 class Detached : public OptDetached<T> {
 public:
     friend class Node<T>;
     friend class SharedNode<T>;
-    friend class SharedState<T>;
     using Super = OptDetached<T>;
 
     // no default constructor - detached must always point to something
@@ -99,7 +108,7 @@ public:
     explicit Detached(Super opt)
         : Super(std::move(opt))
     {
-        if (!opt) {
+        if (!*this) {
             throw std::runtime_error("Cannot construct Detached from null OptDetached");
         }
     }

@@ -208,7 +208,6 @@ public:
     }
 
     using kuzco::SharedState<VecState<T>>::detach;
-    using kuzco::SharedState<VecState<T>>::detachedPayload;
 };
 
 TEST_CASE("State vector")

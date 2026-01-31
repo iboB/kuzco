@@ -9,19 +9,13 @@
 #include <mutex>
 #include <cassert>
 
-namespace kuzco
-{
+namespace kuzco {
 
 template <typename T>
-class SharedState
-{
+class SharedState {
 public:
-    SharedState(Node<T>&& obj)
-        : m_sharedNode(std::move(obj.m_ptr))
-    {}
-
-    SharedState(const Node<T>& obj)
-        : SharedState(Node<T>(obj))
+    SharedState(Node<T> obj)
+        : m_sharedNode(std::move(obj))
     {}
 
     SharedState(const SharedState&) = delete;
@@ -30,52 +24,48 @@ public:
     SharedState& operator=(SharedState&&) = delete;
 
     // returns a non-const pointer to the underlying data
-    T* beginTransaction()
-    {
+    T* beginTransaction() {
         m_transactionMutex.lock();
         assert(!m_transactionRoot);
 
         // unfortunate atomc load
-        // it's not needed since it always happens in a mutex lock
-        auto root = m_sharedNode.detachedPayload();
+        // it's not needed since stores are always in the same mutex lock
+        m_restoreState = m_sharedNode.detach();
 
-        m_transactionRoot = std::make_shared<T>(*root);
+        m_transactionRoot = *m_restoreState;
         return m_transactionRoot.get();
     }
 
-    Detached<T> endTransaction(bool store = true)
-    {
+    Detached<T> endTransaction(bool store = true) {
         assert(m_transactionRoot);
-        std::shared_ptr<const T> ret;
+        OptDetached<T> ret;
 
         // update handle
-        if (store)
-        {
+        if (store) {
             // detach
-            ret = m_transactionRoot;
-            m_sharedNode.store(m_transactionRoot);
+            ret = m_transactionRoot.detach();
+            m_sharedNode.store(Node<T>(m_transactionRoot));
         }
-        else
-        {
+        else {
             // abort transaction
-            ret = m_sharedNode.detachedPayload();
+            ret = std::move(m_restoreState);
         }
 
+        m_restoreState.reset();
         m_transactionRoot.reset();
         m_transactionMutex.unlock();
         return Detached<T>(ret);
     }
 
     Detached<T> detach() const { return m_sharedNode.detach(); }
-    std::shared_ptr<const T> detachedPayload() const { return m_sharedNode.detachedPayload(); }
-
     const SharedNode<T>& sharedNode() const { return m_sharedNode; }
 
 private:
+    SharedNode<T> m_sharedNode; // thread safe root, atomically updated only after transaction ends
+
     std::mutex m_transactionMutex;
-    using PL = std::shared_ptr<T>;
-    PL m_transactionRoot; // holder data for the current transaction
-    SharedNode<T> m_sharedNode; // transaction safe root, atomically updated only after transaction ends
+    OptNode<T> m_transactionRoot; // holder data for the current transaction
+    OptDetached<T> m_restoreState; // in case we want to restore to previous state
 };
 
-}
+} // namespace kuzco

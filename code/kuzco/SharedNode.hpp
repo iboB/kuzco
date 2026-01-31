@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
-#include "Detached.hpp"
+#include "Node.hpp"
 #include <itlib/atomic_shared_ptr_storage.hpp>
 
 namespace kuzco
@@ -13,21 +13,13 @@ class SharedState;
 
 template <typename T>
 class SharedNode {
-    using Payload = std::shared_ptr<T>;
-    std::shared_ptr<itlib::atomic_shared_ptr_storage<T>> m_stateStorage;
-
-    SharedNode(Payload payload)
-        : m_stateStorage(std::make_shared<itlib::atomic_shared_ptr_storage<T>>(std::move(payload)))
+    using Storage = itlib::atomic_shared_ptr_storage<T>;
+    std::shared_ptr<Storage> m_stateStorage;
+public:
+    SharedNode(Node<T> node)
+        : m_stateStorage(std::make_shared<Storage>(std::move(node.m_ptr)))
     {}
 
-    void store(const Payload& payload)
-    {
-        m_stateStorage->store(payload);
-    }
-
-    friend class SharedState<T>;
-
-public:
     SharedNode() = default;
     SharedNode(const SharedNode&) = default;
     SharedNode& operator=(const SharedNode&) = default;
@@ -36,10 +28,11 @@ public:
 
     explicit operator bool() const { return !!m_stateStorage; }
 
-    Detached<T> detach() const { return Detached(detachedPayload()); }
-    std::shared_ptr<const T> detachedPayload() const
-    {
-        return m_stateStorage->load();
+    Detached<T> detach() const {
+        return Detached<T>(m_stateStorage->load());
+    }
+    void store(Node<T> node) {
+        m_stateStorage->store(std::move(node.m_ptr));
     }
 };
 
