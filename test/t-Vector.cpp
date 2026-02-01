@@ -179,7 +179,7 @@ public:
     struct Transaction {
     public:
         Transaction(State& s)
-            : m_ptr(s.beginTransaction())
+            : m_data(*s.beginTransaction())
             , m_state(s)
         {}
 
@@ -190,15 +190,15 @@ public:
 
         void cancel() { m_cancelled = true; }
 
-        VecState<T>* operator->() { return m_ptr; }
-        VecState<T>& operator*() { return *m_ptr; }
+        VecState<T>* operator->() { return &m_data; }
+        VecState<T>& operator*() { return m_data; }
 
         ~Transaction() {
             bool store = !m_cancelled && !std::uncaught_exceptions();
             m_state.endTransaction(store);
         }
     private:
-        VecState<T>* m_ptr;
+        VecState<T>& m_data;
         State& m_state;
         bool m_cancelled = false;
     };

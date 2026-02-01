@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Node.hpp"
+#include "NodeRef.hpp"
 #include "SharedNode.hpp"
 
 #include <mutex>
@@ -25,24 +26,26 @@ public:
     SharedState& operator=(SharedState&&) = delete;
 
     // returns a non-const pointer to the underlying data
-    T* beginTransaction() {
+    NodeRef<T> beginTransaction() {
         assert(!m_restoreState);
         m_transactionMutex.lock();
 
         m_restoreState = m_root;
-        return m_root.get();
+        return NodeRef(m_root);
     }
 
     Detached<T> endTransaction(bool store = true) {
         assert(m_restoreState);
 
-        // update handle
-        if (store) {
-            // detach
+        if (m_root == m_restoreState) {
+            // do nothing
+        }
+        else if (store) {
+            // store changes
             m_sharedNode.store(m_root);
         }
         else {
-            // abort transaction
+            // restore old state
             m_root = Node<T>(m_restoreState);
         }
 

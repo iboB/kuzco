@@ -270,9 +270,11 @@ TEST_CASE("Complex state")
     CHECK(sCompany.m_ctr == 0);
     CHECK(sCompany.m_asgn == 0);
 
-    auto mod = state.beginTransaction();
-    mod->staff.resize(5);
-    state.endTransaction();
+    {
+        auto mod = state.beginTransaction();
+        mod->staff.resize(5);
+        state.endTransaction();
+    }
 
     CHECK(sCompany.living == 1);
     CHECK(sCompany.d_ctr == 1);
@@ -281,7 +283,7 @@ TEST_CASE("Complex state")
     CHECK(sCompany.m_asgn == 0);
 
     auto d = state.detach();
-    CHECK(mod->staff.size() == 5);
+    CHECK(d->staff.size() == 5);
 
     CHECK(sEmployee.living == 5);
     CHECK(sEmployee.d_ctr == 5);
@@ -289,9 +291,11 @@ TEST_CASE("Complex state")
     CHECK(sEmployee.m_ctr == 0);
     CHECK(sEmployee.m_asgn == 0);
 
-    mod = state.beginTransaction();
-    mod->staff.emplace(mod->staff.begin());
-    state.endTransaction();
+    {
+        auto mod = state.beginTransaction();
+        mod->staff.emplace(mod->staff.begin());
+        state.endTransaction();
+    }
 
     CHECK(sEmployee.living == 6);
     CHECK(sEmployee.d_ctr == 6);

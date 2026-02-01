@@ -62,7 +62,7 @@ struct SingleWriterTest
         for (auto& f : writes)
         {
             auto mut = state->beginTransaction();
-            f(mut);
+            f(*mut);
             state->endTransaction();
         }
     }
@@ -99,7 +99,7 @@ struct SingleWriterTest
         r2.join();
     }
 
-    std::vector<std::function<void(Company*)>> writes;
+    std::vector<std::function<void(Company&)>> writes;
     std::vector<std::function<void(DState)>> reads;
 
     std::unique_ptr<SharedState<Company>> state;
@@ -158,28 +158,28 @@ TEST_CASE("Single writer")
     };
 
     test.writes = {
-        [](Company* c) {
-            c->cto = {};
-            c->cto.reset();
+        [](Company& c) {
+            c.cto = {};
+            c.cto.reset();
         },
-        [](Company* c) {
-            c->staff.erase(c->staff.begin() + 2);
+        [](Company& c) {
+            c.staff.erase(c.staff.begin() + 2);
         },
-        [](Company* c) {
-            c->staff.emplace_back(Employee{ {"Alfred", 44}, "dev", 5 });
+        [](Company& c) {
+            c.staff.emplace_back(Employee{ {"Alfred", 44}, "dev", 5 });
         },
-        [](Company* c) {
-            c->staff.erase(c->staff.begin());
+        [](Company& c) {
+            c.staff.erase(c.staff.begin());
         },
-        [](Company* c) {
-            for (auto& d : c->staff)
+        [](Company& c) {
+            for (auto& d : c.staff)
             {
                 d->salary += 10;
             }
         },
-        [](Company* c) {
-            c->staff[0]->data->age = 13;
-            c->staff[0]->data->name = "Allie";
+        [](Company& c) {
+            c.staff[0]->data->age = 13;
+            c.staff[0]->data->name = "Allie";
         },
     };
 
