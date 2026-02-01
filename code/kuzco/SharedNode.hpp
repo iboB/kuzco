@@ -5,11 +5,10 @@
 #include "Node.hpp"
 #include <itlib/atomic_shared_ptr_storage.hpp>
 
-namespace kuzco
-{
+namespace kuzco {
 
-template <typename T>
-class SharedState;
+// a shared node allows multiple writers to to atomically store new versions of a node
+// SharedState uses this to provide shared mutable state with copy-on-write semantics
 
 template <typename T>
 class SharedNode {
@@ -36,4 +35,4 @@ public:
     }
 };
 
-}
+} // namespace kuzco
