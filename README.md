@@ -1,6 +1,6 @@
 # kuzco
 
-No touchy! Immutable state for C++
+No touchy! Copy-on-write and immutable state for C++
 
 *This code is used in production. However it's not yet open-source friendly. I'm working documenting it*
 
@@ -8,4 +8,4 @@ No touchy! Immutable state for C++
 
 The library is distributed under the MIT Software License. See LICENSE.txt for further details or copy [here](http://opensource.org/licenses/MIT).
 
-Copyright &copy; 2020-2025 Borislav Stanimirov.
+Copyright &copy; 2020-2026 Borislav Stanimirov.
