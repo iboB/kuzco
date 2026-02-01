@@ -5,16 +5,19 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 CPMAddPackage(gh:iboB/doctest-util@0.1.4)
 
-macro(add_kuzco_test test)
-    add_doctest_lib_test(${test} kuzco ${ARGN})
+macro(kuzco_test test)
+    add_doctest_lib_test(${test} kuzco t-${test}.cpp ${ARGN})
 endmacro()
 
-add_kuzco_test(core
-    t-NodeRef.cpp
-    t-Kuzco.cpp
-    t-MT.cpp
-    t-SharedState.cpp
-)
+kuzco_test(Node)
+kuzco_test(NodeRef)
 
-add_kuzco_test(vector t-Vector.cpp)
-add_kuzco_test(node-vector t-NodeVector.cpp)
+#kuzco_test(core
+#    
+#    t-Kuzco.cpp
+#    t-MT.cpp
+#    t-SharedState.cpp
+#)
+
+kuzco_test(Vector)
+kuzco_test(NodeVector)
