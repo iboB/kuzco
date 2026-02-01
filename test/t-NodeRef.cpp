@@ -2,14 +2,11 @@
 // SPDX-License-Identifier: MIT
 //
 #include <kuzco/NodeRef.hpp>
-
 #include <doctest/doctest.h>
-
-TEST_SUITE_BEGIN("Kuzco NodeRef");
 
 using namespace kuzco;
 
-TEST_CASE("Basic")
+TEST_CASE("node ref")
 {
     kuzco::NodeRef<int> ref;
     CHECK(!ref);

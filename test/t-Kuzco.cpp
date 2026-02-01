@@ -116,7 +116,7 @@ TEST_CASE("New object with nodes")
     p->b->data->name = "Bob";
     p->b->data->age = 40;
     p->b->department = std::string("accounting");
-    p->b->salary = 64.6;
+    p->b->salary = 64.6;~
     p->type = "meeting";
 
     CHECK(p->a->data->name == "Alice");
