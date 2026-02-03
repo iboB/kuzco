@@ -48,12 +48,9 @@ public:
     value_type& modify(size_type i) { return Super::operator[](i); }
 
     template <typename Pred>
-    NodeRef<T> find_if(Pred f)
-    {
-        for (auto i = Super::begin(); i != Super::end(); ++i)
-        {
-            if (f(i->r()))
-            {
+    NodeRef<T> find_if(Pred f) {
+        for (auto i = Super::begin(); i != Super::end(); ++i) {
+            if (f(i->r())) {
                 return NodeRef<T>(*i);
             }
         }

@@ -7,8 +7,7 @@
 #include <vector>
 
 // shorthand typedef
-namespace kuzco
-{
+namespace kuzco  {
 template <typename T>
 using StdVector = Vector<std::vector<T>>;
-}
+} // namespace kuzco

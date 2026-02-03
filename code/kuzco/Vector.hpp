@@ -7,8 +7,7 @@
 
 #include <itlib/type_traits.hpp>
 
-namespace kuzco
-{
+namespace kuzco {
 
 template <typename WrappedVector>
 class VectorImpl : public Node<WrappedVector>
@@ -68,84 +67,64 @@ public:
     const_reference back() const { return this->get()->back(); }
 
     template <typename... Fwd>
-    void assign(Fwd&&... fwd)
-    {
-        if (!this->unique())
-        {
+    void assign(Fwd&&... fwd) {
+        if (!this->unique()) {
             this->m_ptr = itlib::make_ref_ptr<Wrapped>(std::forward<Fwd>(fwd)...);
         }
-        else
-        {
+        else {
             this->m_ptr->assign(std::forward<Fwd>(fwd)...);
         }
     }
 
-    void assign(std::initializer_list<value_type> ilist)
-    {
-        if (!this->unique())
-        {
+    void assign(std::initializer_list<value_type> ilist) {
+        if (!this->unique()) {
             this->m_ptr = itlib::make_ref_ptr<Wrapped>(ilist);
         }
-        else
-        {
+        else {
             this->m_ptr->assign(ilist);
         }
     }
 
-    iterator insert(const_iterator pos, const value_type& val)
-    {
-        if (!this->unique())
-        {
+    iterator insert(const_iterator pos, const value_type& val) {
+        if (!this->unique()) {
             inserter i(*this, pos, 1);
             return i.v().insert(i.v().end(), val);
         }
-        else
-        {
+        else {
             return this->m_ptr->insert(pos, val);
         }
     }
 
-    iterator insert(const_iterator pos, std::initializer_list<value_type> ilist)
-    {
-        if (!this->unique())
-        {
+    iterator insert(const_iterator pos, std::initializer_list<value_type> ilist) {
+        if (!this->unique()) {
             inserter i(*this, pos, ilist.size());
             return i.v().insert(i.v().end(), ilist);
         }
-        else
-        {
+        else {
             return this->m_ptr->insert(pos, ilist);
         }
     }
 
-    iterator erase(const_iterator pos)
-    {
-        if (!this->unique())
-        {
+    iterator erase(const_iterator pos) {
+        if (!this->unique()) {
             return shrink(pos, 1);
         }
-        else
-        {
+        else {
             return this->m_ptr->erase(pos);
         }
     }
 
-    iterator erase(const_iterator b, const_iterator e)
-    {
-        if (!this->unique())
-        {
+    iterator erase(const_iterator b, const_iterator e) {
+        if (!this->unique()) {
             return shrink(b, e-b);
         }
-        else
-        {
+        else {
             return this->m_ptr->erase(b, e);
         }
     }
 
-    void reserve(size_type cap)
-    {
-        if (!this->unique())
-        {
+    void reserve(size_type cap) {
+        if (!this->unique()) {
             auto oldVec = this->m_ptr;
             if (oldVec->capacity() >= cap) return; // nothing to do
             this->m_ptr = itlib::make_ref_ptr<Wrapped>();
@@ -154,25 +133,20 @@ public:
                 this->m_ptr->emplace_back(e);
             }
         }
-        else
-        {
+        else {
             this->m_ptr->reserve(cap);
         }
     }
 
-    void resize(size_type count)
-    {
+    void resize(size_type count) {
         auto oldVec = this->m_ptr;
-        if (!this->unique())
-        {
+        if (!this->unique()) {
             if (oldVec->size() == count) return; // nothing to do
-            if (count < oldVec->size())
-            {
+            if (count < oldVec->size()) {
                 auto diff = oldVec->size() - count;
                 shrink(end() - diff, diff);
             }
-            else
-            {
+            else {
                 this->m_ptr = itlib::make_ref_ptr<Wrapped>();
                 this->m_ptr->reserve(count);
                 for (auto& e : *oldVec) {
@@ -181,25 +155,20 @@ public:
                 this->m_ptr->resize(count);
             }
         }
-        else
-        {
+        else {
             oldVec->resize(count);
         }
     }
 
-    void resize(size_type count, const value_type& val)
-    {
+    void resize(size_type count, const value_type& val) {
         auto oldVec = this->m_ptr;
-        if (!this->unique())
-        {
+        if (!this->unique()) {
             if (oldVec->size() == count) return; // nothing to do
-            if (count < oldVec->size())
-            {
+            if (count < oldVec->size()) {
                 auto diff = oldVec->size() - count;
                 shrink(end() - diff, diff);
             }
-            else
-            {
+            else {
                 this->m_ptr = itlib::make_ref_ptr<Wrapped>();
                 this->m_ptr->reserve(count);
                 for (auto& e : *oldVec) {
@@ -210,75 +179,62 @@ public:
                 }
             }
         }
-        else
-        {
+        else {
             oldVec->resize(count, val);
         }
     }
 
-    void clear()
-    {
-        if (!this->unique())
-        {
+    void clear() {
+        if (!this->unique()) {
             this->m_ptr = itlib::make_ref_ptr<Wrapped>();
         }
-        else
-        {
+        else {
             this->m_ptr->clear();
         }
     }
 
     template <typename... Args>
-    value_type& emplace_back(Args&&... args)
-    {
+    value_type& emplace_back(Args&&... args) {
         prepare_add_one();
         return this->m_ptr->emplace_back(std::forward<Args>(args)...);
     }
 
-    void push_back(const value_type& val)
-    {
+    void push_back(const value_type& val) {
         prepare_add_one();
         this->m_ptr->push_back(val);
     }
 
-    void pop_back()
-    {
+    void pop_back() {
         auto oldVec = this->m_ptr;
-        if (!this->unique())
-        {
+        if (!this->unique()) {
             shrink(end() - 1, 1);
         }
-        else
-        {
+        else {
             oldVec->pop_back();
         }
     }
 
 private:
-    static void append_to(Wrapped& t, typename Wrapped::const_iterator sbegin, typename Wrapped::const_iterator send)
-    {
+    static void append_to(Wrapped& t, typename Wrapped::const_iterator sbegin, typename Wrapped::const_iterator send) {
 #if defined _MSC_VER
         t.insert(t.cend(), sbegin, send);
 #else
         // unfortunately we can't use the simpler gcc and clang until https://bugs.llvm.org/show_bug.cgi?id=48619 is fixed
-        for (auto i = sbegin; i != send; ++i)
-        {
+        for (auto i = sbegin; i != send; ++i) {
             t.emplace_back(*i);
         }
 #endif
     }
 
     // used by push/emplace_back()
-    void prepare_add_one()
-    {
+    void prepare_add_one() {
         if (this->unique()) return;
 
         inserter i(*this, this->m_ptr->cend(), 1);
     }
 
     // used by insert/emplace
-    struct inserter
-    {
+    struct inserter {
         inserter(VectorImpl& b, typename Wrapped::const_iterator pos, size_type count)
             : m_v(b)
             , m_oldVec(b.m_ptr.get())
@@ -290,14 +246,12 @@ private:
             append_to(v(), m_oldVec->cbegin(), pos);
         }
 
-        ~inserter()
-        {
+        ~inserter() {
             append_to(v(), m_pos, m_oldVec->cend());
             m_v.m_ptr = std::move(m_newVec);
         }
 
-        Wrapped& v()
-        {
+        Wrapped& v() {
             return *m_newVec;
         }
 
@@ -308,8 +262,7 @@ private:
         itlib::ref_ptr<Wrapped> m_newVec;
     };
 
-    iterator shrink(const_iterator pos, size_type by)
-    {
+    iterator shrink(const_iterator pos, size_type by) {
         auto oldVec = this->m_ptr;
         if (pos + by > oldVec->cend()) throw 0;
         this->m_ptr = itlib::make_ref_ptr<Wrapped>();
@@ -323,8 +276,7 @@ private:
 };
 
 template <typename WrappedVector>
-class Vector : public VectorImpl<WrappedVector>
-{
+class Vector : public VectorImpl<WrappedVector> {
 public:
     static_assert(!itlib::is_instantiation_of_v<kuzco::Node, typename WrappedVector::value_type>, "Vectors of nodes are unsafe. You likely need NodeVector in this case");
     using Super = VectorImpl<WrappedVector>;
@@ -332,4 +284,4 @@ public:
     using Super::operator=;
 };
 
-}
+} // namespace kuzco
