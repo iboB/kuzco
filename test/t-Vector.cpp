@@ -220,7 +220,7 @@ TEST_CASE("Compare")
     kuzco::StdVector<int> v1, v2;
 
     v1.assign({1, 2, 3});
-    v2.assign({1, 2, 3});
+    v2 = std::vector<int>{1, 2, 3};
 
     auto v3 = v1;
 

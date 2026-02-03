@@ -22,6 +22,7 @@ private:
     using Super::operator->;
 public:
     using Super::Node;
+    using Super::operator=;
 
     // allow this so we can pass the vector to workers as a vector
     const Wrapped& operator*() const { return *get(); }
