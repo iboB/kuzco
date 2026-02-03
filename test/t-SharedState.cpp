@@ -23,7 +23,7 @@ TEST_CASE("basic") {
     CHECK(stats.copies == 0);
 
     {
-        auto t = r1.beginTransaction();
+        r1.beginTransaction();
         r1.endTransaction();
     }
 
