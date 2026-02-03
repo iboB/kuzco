@@ -7,6 +7,8 @@
 
 #include <itlib/type_traits.hpp>
 
+#include <initializer_list>
+
 namespace kuzco {
 
 template <typename WrappedVector>

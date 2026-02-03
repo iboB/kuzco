@@ -19,17 +19,37 @@ TEST_CASE("basic") {
 
     SharedState<PersonData> r1({});
 
+    CHECK(stats.total == 1);
+    CHECK(stats.copies == 0);
+
+    {
+        auto t = r1.beginTransaction();
+        r1.endTransaction();
+    }
+
+    CHECK(stats.total == 1);
+    CHECK(stats.copies == 0);
+
     {
         auto mut = r1.beginTransaction();
         mut->age = 123;
         r1.endTransaction();
     }
 
+    CHECK(stats.living == 1);
     CHECK(stats.total == 2);
     CHECK(stats.copies == 1);
 
     auto r = r1.detach();
     CHECK(r->age == 123);
+
+    {
+        auto t = r1.beginTransaction();
+        r1.endTransaction();
+    }
+
+    CHECK(stats.total == 2);
+    CHECK(stats.copies == 1);
 
     r = r1.detach();
     CHECK(r->age == 123);
@@ -44,6 +64,16 @@ TEST_CASE("basic") {
 
     r = r1.detach();
     CHECK(r->age == 456);
+
+    r = r1.detach();
+    CHECK(r->age == 456);
+
+    {
+        auto mut = r1.beginTransaction();
+        mut->age = 1000;
+        CHECK(mut->age == 1000);
+        r1.endTransaction(false);
+    }
 
     r = r1.detach();
     CHECK(r->age == 456);
