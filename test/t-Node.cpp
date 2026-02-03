@@ -1,50 +1,13 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
-#include <kuzco/Node.hpp>
+#include "TestTypes.hpp"
 
 #include <doctest/doctest.h>
 #include <doctest/util/lifetime_counter.hpp>
 
-#include <string>
-#include <string_view>
-#include <vector>
-
 using namespace kuzco;
 namespace tu = doctest::util;
-
-struct PersonData : public tu::lifetime_counter<PersonData> {
-    PersonData() = default;
-    PersonData(std::string_view n, int a) : name(n), age(a) {}
-    std::string name;
-    int age = 0;
-};
-
-
-struct Employee : public tu::lifetime_counter<Employee> {
-    Node<PersonData> data;
-    Node<std::string> department;
-    double salary = 0;
-};
-
-struct Pair : public tu::lifetime_counter<Pair> {
-    Node<Employee> a;
-    Node<Employee> b;
-    std::string type;
-};
-
-using Blob = std::unique_ptr<std::vector<int>>;
-
-struct Boss : public tu::lifetime_counter<Boss> {
-    Node<PersonData> data;
-    Node<Blob> blob;
-};
-
-struct Company : public tu::lifetime_counter<Company> {
-    std::vector<Node<Employee>> staff;
-    Node<Boss> ceo;
-    OptNode<Boss> cto;
-};
 
 TEST_CASE("new object") {
     PersonData::lifetime_stats stats;
@@ -79,17 +42,17 @@ TEST_CASE("new object") {
 
 TEST_CASE("new deep object") {
     Pair::lifetime_stats sPair;
-    Employee::lifetime_stats sEmployee;
-    PersonData::lifetime_stats sPersonData;
-    tu::lifetime_counter_sentry lsp(sPair), lse(sEmployee), lspd(sPersonData);
+    Employee::lifetime_stats sEmp;
+    PersonData::lifetime_stats sPers;
+    tu::lifetime_counter_sentry lsp(sPair), lse(sEmp), lspd(sPers);
 
     Node<Pair> p;
     CHECK(sPair.living == 1);
     CHECK(sPair.d_ctr == 1);
-    CHECK(sEmployee.living == 2);
-    CHECK(sEmployee.d_ctr == 2);
-    CHECK(sPersonData.living == 2);
-    CHECK(sPersonData.d_ctr == 2);
+    CHECK(sEmp.living == 2);
+    CHECK(sEmp.d_ctr == 2);
+    CHECK(sPers.living == 2);
+    CHECK(sPers.d_ctr == 2);
 
     CHECK(p.unique());
     CHECK(p->a.unique());
@@ -120,36 +83,36 @@ TEST_CASE("new deep object") {
     CHECK(sPair.total == 1);
     CHECK(sPair.d_ctr == 1);
     CHECK(sPair.copies == 0);
-    CHECK(sEmployee.living == 2);
-    CHECK(sEmployee.total == 2);
-    CHECK(sEmployee.d_ctr == 2);
-    CHECK(sEmployee.copies == 0);
-    CHECK(sPersonData.living == 2);
-    CHECK(sPersonData.d_ctr == 2);
-    CHECK(sPersonData.total == 2);
-    CHECK(sPersonData.copies == 0);
+    CHECK(sEmp.living == 2);
+    CHECK(sEmp.total == 2);
+    CHECK(sEmp.d_ctr == 2);
+    CHECK(sEmp.copies == 0);
+    CHECK(sPers.living == 2);
+    CHECK(sPers.d_ctr == 2);
+    CHECK(sPers.total == 2);
+    CHECK(sPers.copies == 0);
 }
 
 TEST_CASE("new deep var object") {
-    Company::lifetime_stats sCompany;
-    Employee::lifetime_stats sEmployee;
+    Company::lifetime_stats sComp;
+    Employee::lifetime_stats sEmp;
     Boss::lifetime_stats sBoss;
-    tu::lifetime_counter_sentry lsc(sCompany), lsb(sBoss), lse(sEmployee);
+    tu::lifetime_counter_sentry lsc(sComp), lsb(sBoss), lse(sEmp);
 
     Node<Company> acme;
     acme->staff.resize(2);
 
-    CHECK(sEmployee.living == 2);
-    CHECK(sEmployee.d_ctr == 2);
-    CHECK(sEmployee.total == 2);
-    CHECK(sEmployee.copies == 0);
+    CHECK(sEmp.living == 2);
+    CHECK(sEmp.d_ctr == 2);
+    CHECK(sEmp.total == 2);
+    CHECK(sEmp.copies == 0);
 
     acme->staff.resize(10);
 
-    CHECK(sEmployee.living == 10);
-    CHECK(sEmployee.d_ctr == 10);
-    CHECK(sEmployee.total == 10);
-    CHECK(sEmployee.copies == 0);
+    CHECK(sEmp.living == 10);
+    CHECK(sEmp.d_ctr == 10);
+    CHECK(sEmp.total == 10);
+    CHECK(sEmp.copies == 0);
 
     CHECK(!acme->cto);
 
@@ -169,5 +132,128 @@ TEST_CASE("new deep var object") {
 }
 
 TEST_CASE("simple state") {
+    PersonData::lifetime_stats sPers;
+    tu::lifetime_counter_sentry lsp(sPers);
 
+    Node<PersonData> state;
+    state->name = "alice";
+
+    auto pre = state.detach();
+
+    CHECK(sPers.living == 1);
+    CHECK(sPers.d_ctr == 1);
+    CHECK(sPers.total == 1);
+
+    state->name = "bob";
+
+    CHECK(sPers.living == 2);
+    CHECK(sPers.d_ctr == 1);
+    CHECK(sPers.c_ctr == 1);
+    CHECK(sPers.total == 2);
+
+    CHECK(pre->name == "alice");
+
+    pre.reset();
+
+    CHECK(state->name == "bob");
+    state->name = "charlie";
+
+    CHECK(sPers.living == 1);
+    CHECK(sPers.d_ctr == 1);
+    CHECK(sPers.c_ctr == 1);
+    CHECK(sPers.copies == 1);
+    CHECK(sPers.total == 2);
+}
+
+TEST_CASE("deep state") { // "deep state", get it?
+    Company::lifetime_stats sComp;
+    Employee::lifetime_stats sEmp;
+    tu::lifetime_counter_sentry lsc(sComp), lse(sEmp);
+
+    Node<Company> state;
+    Detached<Employee> alice;
+    {
+        auto& a = state->staff.emplace_back();
+        a->data->name = "Alice";
+        a->department = "dev";
+        a->salary = 45;
+        alice = a.detach();
+    }
+    {
+        auto& b = state->staff.emplace_back();
+        b->data->name = "Bob";
+        b->department = "acc";
+        b->salary = 35;
+    }
+
+    CHECK(sEmp.living == 2);
+    CHECK(sEmp.d_ctr == 2);
+    CHECK(sEmp.copies == 0);
+    CHECK(sEmp.total == 2);
+
+    {
+        auto& b = state->staff.back();
+        b->data->age = 36;
+    }
+
+    CHECK(sEmp.living == 2);
+    CHECK(sEmp.d_ctr == 2);
+    CHECK(sEmp.copies == 0);
+    CHECK(sEmp.total == 2);
+
+    {
+        auto& a = state->staff.front();
+        a->salary = 50;
+    }
+    CHECK(alice->salary == 45);
+
+    CHECK(sEmp.living == 3);
+    CHECK(sEmp.d_ctr == 2);
+    CHECK(sEmp.c_ctr == 1);
+    CHECK(sEmp.copies == 1);
+    CHECK(sEmp.total == 3);
+
+    CHECK(sComp.living == 1);
+    CHECK(sComp.d_ctr == 1);
+    CHECK(sComp.copies == 0);
+    CHECK(sComp.total == 1);
+}
+
+TEST_CASE("state share") {
+    Pair::lifetime_stats sPair;
+    Employee::lifetime_stats sEmp;
+    tu::lifetime_counter_sentry lsp(sPair), lse(sEmp);
+
+    Node<Pair> state1;
+    Node<Pair> state2 = state1;
+
+    CHECK_FALSE(state1.unique());
+
+    CHECK(sPair.total == 1);
+
+    state2 = Pair{};
+
+    CHECK(sPair.total == 3);
+    CHECK(sPair.living == 2);
+    CHECK(sPair.d_ctr == 2);
+    CHECK(sPair.c_ctr == 0);
+    CHECK(sPair.m_ctr == 1);
+    CHECK(sPair.copies == 0);
+
+    CHECK(state1.unique());
+
+    state2 = state1;
+
+    CHECK_FALSE(state1.unique());
+    CHECK(sPair.living == 1);
+
+    CHECK(sEmp.copies == 0);
+    state1->a->data->name = "Alice";
+    CHECK(sEmp.copies == 1);
+
+    CHECK(sPair.copies == 1);
+    CHECK(sPair.living == 2);
+
+    CHECK(state1->a != state2->a);
+    CHECK(state1->b == state2->b);
 }

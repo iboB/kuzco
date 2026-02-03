@@ -12,8 +12,10 @@ endmacro()
 kuzco_test(Node)
 kuzco_test(NodeRef)
 
+kuzco_test(SharedState)
+
 #kuzco_test(core
-#    
+#
 #    t-Kuzco.cpp
 #    t-MT.cpp
 #    t-SharedState.cpp

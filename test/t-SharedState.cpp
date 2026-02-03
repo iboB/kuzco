@@ -1,6 +1,7 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
+#include "TestTypes.hpp"
 #include <kuzco/SharedState.hpp>
 
 #include <doctest/doctest.h>
@@ -8,41 +9,35 @@
 
 #include <vector>
 
-struct HandleTestType : public doctest::util::lifetime_counter<HandleTestType>
-{
-    int n = 1;
-};
-
-TEST_CASE("Simple Shared state test")
-{
-    HandleTestType::lifetime_stats stats;
+TEST_CASE("basic") {
+    PersonData::lifetime_stats stats;
     doctest::util::lifetime_counter_sentry sentry(stats);
 
-    kuzco::SharedState<HandleTestType> r1({});
+    kuzco::SharedState<PersonData> r1({});
     auto sn1 = r1.sharedNode();
 
     {
         auto mut = r1.beginTransaction();
-        mut->n = 123;
+        mut->age = 123;
         r1.endTransaction();
     }
 
     auto r = sn1.detach();
-    CHECK(r->n == 123);
+    CHECK(r->age == 123);
 
     auto sn2 = r1.sharedNode();
     r = sn2.detach();
-    CHECK(r->n == 123);
+    CHECK(r->age == 123);
 
     {
         auto mut = r1.beginTransaction();
-        mut->n = 456;
+        mut->age = 456;
         r1.endTransaction();
     }
 
     r = sn1.detach();
-    CHECK(r->n == 456);
+    CHECK(r->age == 456);
 
     r = sn2.detach();
-    CHECK(r->n == 456);
+    CHECK(r->age == 456);
 }
