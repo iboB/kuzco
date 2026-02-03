@@ -12,8 +12,7 @@
 namespace kuzco {
 
 template <typename WrappedVector>
-class VectorImpl : public Node<WrappedVector>
-{
+class VectorImpl : public Node<WrappedVector> {
 public:
     using Super = Node<WrappedVector>;
     using Wrapped = WrappedVector;

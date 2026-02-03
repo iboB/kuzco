@@ -6,12 +6,10 @@
 #include "Vector.hpp"
 #include "NodeRef.hpp"
 
-namespace kuzco
-{
+namespace kuzco {
 
 template <typename T, template <typename...> class WrappedVector>
-class NodeVector : public VectorImpl<WrappedVector<Node<T>>>
-{
+class NodeVector : public VectorImpl<WrappedVector<Node<T>>> {
 public:
     using Super = VectorImpl<WrappedVector<Node<T>>>;
 #if defined(_MSC_VER)
@@ -58,4 +56,4 @@ public:
     }
 };
 
-}
+} // namespace kuzco
