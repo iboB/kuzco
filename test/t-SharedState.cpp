@@ -45,6 +45,7 @@ TEST_CASE("basic") {
 
     {
         auto t = r1.beginTransaction();
+        CHECK(t.r().age == 123);
         r1.endTransaction();
     }
 
