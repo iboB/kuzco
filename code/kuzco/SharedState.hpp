@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
-#include "LocalState.hpp"
+#include "Node.hpp"
+#include "NodeRef.hpp"
 
 #include <itlib/atomic_shared_ptr_storage.hpp>
 
@@ -27,16 +28,26 @@ public:
     // returns a non-const pointer to the underlying data
     NodeRef<T> beginTransaction() {
         m_transactionMutex.lock();
-        return m_root.beginTransaction();
+        assert(!m_restoreState);
+        m_restoreState = m_root.m_ptr;
+        return NodeRef(m_root);
     }
 
     Detached<T> endTransaction(bool store = true) {
-        auto changed = m_root.endTransaction(store);
-        auto ret = m_root.detach();
-        if (changed) {
-            // store changes
-            m_sharedNode.store(ret._as_shared_ptr_unsafe());
+        if (m_root.m_ptr == m_restoreState) {
+            // nothing to do
         }
+        else if (store) {
+            // store state
+            m_sharedNode.store(m_root.detach()._as_shared_ptr_unsafe());
+        }
+        else {
+            // restore root
+            std::swap(m_root.m_ptr, m_restoreState);
+        }
+
+        m_restoreState.reset();
+        auto ret = m_root.detach();
         m_transactionMutex.unlock();
         return ret;
     }
@@ -51,7 +62,12 @@ private:
 
     std::mutex m_transactionMutex;
     // mutable root, modified during transaction, not thread safe
-    LocalState<T> m_root;
+    Node<T> m_root;
+
+    // a copy of the root at the beginning of the transaction
+    // since m_root is never unique at the beginning of a transaction (there a ref in m_sharedNode)
+    // we can affort to keep this at almost no additonal cost
+    itlib::ref_ptr<T> m_restoreState;
 };
 
 } // namespace kuzco

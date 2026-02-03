@@ -12,7 +12,6 @@ endmacro()
 kuzco_test(Node)
 kuzco_test(NodeRef)
 
-kuzco_test(LocalState)
 kuzco_test(SharedState)
 
 kuzco_test(Vector)
