@@ -15,6 +15,10 @@ struct PersonData : public doctest::util::lifetime_counter<PersonData> {
 };
 
 struct Employee : public doctest::util::lifetime_counter<Employee> {
+    Employee() = default;
+    Employee(PersonData d, std::string_view dept, double sal)
+        : data(std::move(d)), department(dept), salary(sal)
+    {}
     kuzco::Node<PersonData> data;
     kuzco::Node<std::string> department;
     double salary = 0;
@@ -34,6 +38,7 @@ struct Boss : public doctest::util::lifetime_counter<Boss> {
 };
 
 struct Company : public doctest::util::lifetime_counter<Company> {
+    std::string name;
     std::vector<kuzco::Node<Employee>> staff;
     kuzco::Node<Boss> ceo;
     kuzco::OptNode<Boss> cto;
