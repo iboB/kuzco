@@ -79,13 +79,20 @@ TEST_CASE("basic") {
     CHECK(r->age == 456);
 }
 
-struct SingleWriterTest {
-    void writer() {
-        for (auto& f : writes) {
+struct MtTest {
+    void shuffleAndWrite(std::minstd_rand& rnd) {
+        auto localWrites = writes;
+        std::shuffle(localWrites.begin(), localWrites.end(), rnd);
+        for (auto& f : localWrites) {
             auto mut = state.beginTransaction();
             f(*mut);
             state.endTransaction();
         }
+    }
+
+    void writer() {
+        std::minstd_rand rnd(std::random_device{}());
+        shuffleAndWrite(rnd);
     }
 
     void shuffleAndRead(std::minstd_rand& rnd) const {
@@ -99,25 +106,21 @@ struct SingleWriterTest {
 
     void reader() const {
         std::minstd_rand rnd(std::random_device{}());
-        auto localReads = reads;
-
-        std::shuffle(localReads.begin(), localReads.end(), rnd);
-        for (auto& f : localReads) {
-            auto d = state.detach();
-            f(d);
-        }
+        shuffleAndRead(rnd);
     }
 
     void run() {
-        std::thread w([this]() { writer(); });
-        std::thread r1([this]() { reader(); });
-        std::thread r2([this]() { reader(); });
-        std::thread r3([this]() { reader(); });
+        std::thread threads[] = {
+            std::thread([this]() { writer(); }),
+            std::thread([this]() { reader(); }),
+            std::thread([this]() { writer(); }),
+            std::thread([this]() { reader(); }),
+            std::thread([this]() { reader(); })
+        };
 
-        w.join();
-        r1.join();
-        r2.join();
-        r3.join();
+        for (auto& t : threads) {
+            t.join();
+        }
     }
 
     std::vector<std::function<void(Company&)>> writes;
@@ -125,7 +128,7 @@ struct SingleWriterTest {
 
     SharedState<Company> state;
 
-    SingleWriterTest(Node<Company>&& initialState)
+    MtTest(Node<Company>&& initialState)
         : state(std::move(initialState))
     {}
 };
@@ -140,8 +143,10 @@ TEST_CASE("Single writer") {
     acme->staff.emplace_back(Employee{{"Adam", 34}, "dev", 55});
     acme->staff.emplace_back(Employee{{"Andrew", 30}, "dev", 25});
     acme->staff.emplace_back(Employee{{"Albert", 30}, "mar", 35});
+    acme->staff.emplace_back(Employee{{"Alfonse", 21}, "mar", 15});
+    acme->staff.emplace_back(Employee{{"Adelaide", 31}, "mar", 20});
 
-    SingleWriterTest test(std::move(acme));
+    MtTest test(std::move(acme));
 
     test.reads = {
         [](Detached<Company> c) {

@@ -30,7 +30,7 @@ public:
     explicit operator bool() const { return !!m_ptr; }
     void reset() noexcept { m_ptr.reset(); }
 
-    // why is this needed?
+    // why this is needed:
     // in a transaction we may want to get a const ref to the data
     // we may want to check something without triggering a copy-on-write
     const T& r() const noexcept { return *get(); }

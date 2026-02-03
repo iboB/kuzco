@@ -27,8 +27,8 @@ public:
 
     // returns a non-const pointer to the underlying data
     NodeRef<T> beginTransaction() {
-        assert(!m_restoreState);
         m_transactionMutex.lock();
+        assert(!m_restoreState);
 
         m_restoreState = m_root;
         return NodeRef(m_root);
@@ -50,8 +50,9 @@ public:
         }
 
         m_restoreState.reset();
+        auto ret = m_root.detach();
         m_transactionMutex.unlock();
-        return m_root.detach();
+        return ret;
     }
 
     // atomic snapshot of the current state
