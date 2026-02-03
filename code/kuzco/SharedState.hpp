@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
+#include "LocalState.hpp"
 
-#include "Node.hpp"
-#include "NodeRef.hpp"
-#include "SharedNode.hpp"
+#include <itlib/atomic_shared_ptr_storage.hpp>
 
 #include <mutex>
 #include <cassert>
@@ -16,7 +15,7 @@ template <typename T>
 class SharedState {
 public:
     SharedState(Node<T> obj)
-        : m_sharedNode(obj)
+        : m_sharedNode(obj.detach()._as_shared_ptr_unsafe())
         , m_root(std::move(obj))
     {}
 
@@ -28,47 +27,31 @@ public:
     // returns a non-const pointer to the underlying data
     NodeRef<T> beginTransaction() {
         m_transactionMutex.lock();
-        assert(!m_restoreState);
-
-        m_restoreState = m_root;
-        return NodeRef(m_root);
+        return m_root.beginTransaction();
     }
 
     Detached<T> endTransaction(bool store = true) {
-        assert(m_restoreState);
-
-        if (m_root == m_restoreState) {
-            // do nothing
-        }
-        else if (store) {
-            // store changes
-            m_sharedNode.store(m_root);
-        }
-        else {
-            // restore old state
-            m_root = Node<T>(m_restoreState);
-        }
-
-        m_restoreState.reset();
+        auto changed = m_root.endTransaction(store);
         auto ret = m_root.detach();
+        if (changed) {
+            // store changes
+            m_sharedNode.store(ret._as_shared_ptr_unsafe());
+        }
         m_transactionMutex.unlock();
         return ret;
     }
 
     // atomic snapshot of the current state
-    Detached<T> detach() const { return m_sharedNode.detach(); }
-
-    // get the shared node
-    const SharedNode<T>& sharedNode() const { return m_sharedNode; }
+    Detached<T> detach() const {
+        return Detached<T>::_from_shared_ptr_unsafe(m_sharedNode.load());
+    }
 
 private:
-    SharedNode<T> m_sharedNode; // thread safe root, atomically updated only after transaction ends
+    itlib::atomic_shared_ptr_storage<const T> m_sharedNode;
 
     std::mutex m_transactionMutex;
-    Node<T> m_root; // mutable state, guarded by the mutex
-
-    // a copy of the root at the beginning of the transaction
-    OptNode<T> m_restoreState;
+    // mutable root, modified during transaction, not thread safe
+    LocalState<T> m_root;
 };
 
 } // namespace kuzco

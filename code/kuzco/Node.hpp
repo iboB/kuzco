@@ -10,7 +10,6 @@
 namespace kuzco {
 
 template <typename> class LocalState;
-template <typename> class SharedNode;
 
 template <typename T>
 class OptNode {
@@ -79,7 +78,6 @@ protected:
     itlib::ref_ptr<T> m_ptr;
 
     friend class LocalState<T>;
-    friend class SharedNode<T>;
 };
 
 template <typename T>
