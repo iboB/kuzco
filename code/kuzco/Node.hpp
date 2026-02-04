@@ -85,7 +85,7 @@ class Node : public OptNode<T> {
 public:
     using Super = OptNode<T>;
 
-    template <typename... Args, std::enable_if_t<std::is_constructible_v<T, Args...>, int> = 0>
+    template <typename... Args, typename = decltype(T(std::declval<Args>()...))>
     Node(Args&&... args)
         : Super(itlib::make_ref_ptr<T>(std::forward<Args>(args)...))
     {}
