@@ -66,7 +66,7 @@ private:
 
     // a copy of the root at the beginning of the transaction
     // since m_root is never unique at the beginning of a transaction (there a ref in m_sharedNode)
-    // we can affort to keep this at almost no additonal cost
+    // we can afford to keep this at almost no additional cost
     itlib::ref_ptr<T> m_restoreState;
 };
 
