@@ -20,7 +20,7 @@ template <template<typename> class State>
 void testState()
 {
     {
-        State<int> state;
+        State<int> state({});
         auto di = state.detach();
         CHECK(di->vec.size() == 0);
         CHECK(di->vec.capacity() == 0);
@@ -141,7 +141,7 @@ void testState()
     }
 
     {
-        State<std::string> state;
+        State<std::string> state({});
         state.transaction()->vec.assign({"as", "df"});
         CHECK(state.detach()->vec.size() == 2);
         std::string s1 = "the quick brown fox jumped over the lazy dog 1234567890";
@@ -170,45 +170,7 @@ TEST_CASE("Vector is a vector")
 }
 
 template <typename T>
-class State : private kuzco::SharedState<VecState<T>> {
-public:
-    State()
-        : kuzco::SharedState<VecState<T>>(kuzco::Node<VecState<T>>())
-    {}
-
-    struct Transaction {
-    public:
-        Transaction(State& s)
-            : m_data(*s.beginTransaction())
-            , m_state(s)
-        {}
-
-        Transaction(const Transaction&) = delete;
-        Transaction& operator=(const Transaction&) = delete;
-        Transaction(Transaction&&) = delete;
-        Transaction& operator=(Transaction&&) = delete;
-
-        void cancel() { m_cancelled = true; }
-
-        VecState<T>* operator->() { return &m_data; }
-        VecState<T>& operator*() { return m_data; }
-
-        ~Transaction() {
-            bool store = !m_cancelled && !std::uncaught_exceptions();
-            m_state.endTransaction(store);
-        }
-    private:
-        VecState<T>& m_data;
-        State& m_state;
-        bool m_cancelled = false;
-    };
-
-    Transaction transaction() {
-        return Transaction(*this);
-    }
-
-    using kuzco::SharedState<VecState<T>>::detach;
-};
+using State = kuzco::SharedState<VecState<T>>;
 
 TEST_CASE("State vector")
 {

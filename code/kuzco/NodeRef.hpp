@@ -35,7 +35,7 @@ public:
     T* operator->() { return m_node->operator->(); }
     T& operator*() { return m_node->operator*(); }
 
-private:
+protected:
     Node* m_node = nullptr;
 };
 

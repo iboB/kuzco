@@ -23,17 +23,15 @@ TEST_CASE("basic") {
     CHECK(stats.copies == 0);
 
     {
-        r1.beginTransaction();
-        r1.endTransaction();
+        auto t = r1.transaction();
     }
 
     CHECK(stats.total == 1);
     CHECK(stats.copies == 0);
 
     {
-        auto mut = r1.beginTransaction();
-        mut->age = 123;
-        r1.endTransaction();
+        auto t = r1.transaction();
+        t->age = 123;
     }
 
     CHECK(stats.living == 1);
@@ -44,9 +42,8 @@ TEST_CASE("basic") {
     CHECK(r->age == 123);
 
     {
-        auto t = r1.beginTransaction();
+        auto t = r1.transaction();
         CHECK(t.r().age == 123);
-        r1.endTransaction();
     }
 
     CHECK(stats.total == 2);
@@ -56,9 +53,8 @@ TEST_CASE("basic") {
     CHECK(r->age == 123);
 
     {
-        auto mut = r1.beginTransaction();
-        mut->age = 456;
-        r1.endTransaction();
+        auto t = r1.transaction();
+        t->age = 456;
     }
 
     CHECK(r->age == 123);
@@ -70,10 +66,10 @@ TEST_CASE("basic") {
     CHECK(r->age == 456);
 
     {
-        auto mut = r1.beginTransaction();
-        mut->age = 1000;
-        CHECK(mut->age == 1000);
-        r1.endTransaction(false);
+        auto t = r1.transaction();
+        t->age = 1000;
+        CHECK(t->age == 1000);
+        t.abort();
     }
 
     r = r1.detach();
@@ -85,9 +81,8 @@ struct MtTest {
         auto localWrites = writes;
         std::shuffle(localWrites.begin(), localWrites.end(), rnd);
         for (auto& f : localWrites) {
-            auto mut = state.beginTransaction();
-            f(*mut);
-            state.endTransaction();
+            auto t = state.transaction();
+            f(*t);
         }
     }
 
