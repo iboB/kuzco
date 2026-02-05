@@ -8,6 +8,7 @@
 #include <itlib/atomic_shared_ptr_storage.hpp>
 
 #include <mutex>
+#include <utility>
 #include <cassert>
 
 namespace kuzco {
@@ -115,7 +116,7 @@ public:
         return Detached<T>::_from_shared_ptr_unsafe(m_sharedNode.load());
     }
 
-private:
+protected:
     itlib::atomic_shared_ptr_storage<const T> m_sharedNode;
 
     std::mutex m_transactionMutex;
