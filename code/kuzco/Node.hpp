@@ -72,15 +72,14 @@ public:
     T& operator*() { return *get(); }
 
     Detached<T> detach() const noexcept { return m_ptr; }
-    Fingerprint<T> fingerprint() const noexcept { return m_ptr; }
+    Fingerprint fingerprint() const noexcept { return m_ptr; }
 
     template <typename U>
     bool sameAs(const Detached<U>& other) const noexcept {
         return m_ptr.get() == other.get();
     }
 
-    template <typename U>
-    bool sameAs(const Fingerprint<U>& other) const noexcept {
+    bool sameAs(const Fingerprint& other) const noexcept {
         return other.sameAs(m_ptr);
     }
 
@@ -144,20 +143,20 @@ bool operator!=(const OptNode<A>& a, const Detached<B>& b) noexcept {
     return !a.sameAs(b);
 }
 
-template <typename A, typename B>
-bool operator==(const Fingerprint<A>& a, const OptNode<B>& b) noexcept {
+template <typename T>
+bool operator==(const Fingerprint& a, const OptNode<T>& b) noexcept {
     return b.sameAs(a);
 }
-template <typename A, typename B>
-bool operator!=(const Fingerprint<A>& a, const OptNode<B>& b) noexcept {
+template <typename T>
+bool operator!=(const Fingerprint& a, const OptNode<T>& b) noexcept {
     return !b.sameAs(a);
 }
-template <typename A, typename B>
-bool operator==(const OptNode<A>& a, const Fingerprint<B>& b) noexcept {
+template <typename T>
+bool operator==(const OptNode<T>& a, const Fingerprint& b) noexcept {
     return a.sameAs(b);
 }
-template <typename A, typename B>
-bool operator!=(const OptNode<A>& a, const Fingerprint<B>& b) noexcept {
+template <typename T>
+bool operator!=(const OptNode<T>& a, const Fingerprint& b) noexcept {
     return !a.sameAs(b);
 }
 

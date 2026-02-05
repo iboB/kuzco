@@ -35,11 +35,8 @@ namespace kuzco {
 // For cases when you know the use is not safe, for now one must use alternative mechanisms for fingerprinting
 // like revisions or hashes.
 
-template <typename T = void>
 class Fingerprint {
-    template <typename> friend class Fingerprint;
-
-    std::weak_ptr<const T> m_fp;
+    std::weak_ptr<const void> m_fp;
 public:
     Fingerprint() noexcept = default;
 
@@ -48,15 +45,6 @@ public:
     Fingerprint(Fingerprint&&) noexcept = default;
     Fingerprint& operator=(Fingerprint&&) noexcept = default;
 
-    template <typename U>
-    Fingerprint(Fingerprint<U> fp) noexcept
-        : m_fp(std::move(fp.m_fp))
-    {}
-    template <typename U>
-    Fingerprint& operator=(Fingerprint<U> fp) noexcept {
-        m_fp = std::move(fp.m_fp);
-        return *this;
-    }
     template <typename U>
     Fingerprint(const itlib::ref_ptr<U>& ptr) noexcept
         : m_fp(ptr._as_shared_ptr_unsafe())
@@ -76,8 +64,7 @@ public:
         m_fp.reset();
     }
 
-    template <typename U>
-    bool sameAs(const Fingerprint<U>& other) const noexcept {
+    bool sameAs(const Fingerprint& other) const noexcept {
         return !m_fp.owner_before(other.m_fp)
             && !other.m_fp.owner_before(m_fp);
     }
@@ -88,30 +75,28 @@ public:
             && !ptr._as_shared_ptr_unsafe().owner_before(m_fp);
     }
 
-    template <typename U>
-    bool operator==(const Fingerprint<U>& other) const noexcept {
+    bool operator==(const Fingerprint& other) const noexcept {
         return sameAs(other);
     }
-    template <typename U>
-    bool operator!=(const Fingerprint<U>& other) const noexcept {
+    bool operator!=(const Fingerprint& other) const noexcept {
         return !sameAs(other);
     }
 };
 
-template <typename A, typename B>
-bool operator==(const itlib::ref_ptr<A>& a, const Fingerprint<B>& b) noexcept {
+template <typename T>
+bool operator==(const itlib::ref_ptr<T>& a, const Fingerprint& b) noexcept {
     return b.sameAs(a);
 }
-template <typename A, typename B>
-bool operator!=(const itlib::ref_ptr<A>& a, const Fingerprint<B>& b) noexcept {
+template <typename T>
+bool operator!=(const itlib::ref_ptr<T>& a, const Fingerprint& b) noexcept {
     return !b.sameAs(a);
 }
-template <typename A, typename B>
-bool operator==(const Fingerprint<A>& a, const itlib::ref_ptr<B>& b) noexcept {
+template <typename T>
+bool operator==(const Fingerprint& a, const itlib::ref_ptr<T>& b) noexcept {
     return a.sameAs(b);
 }
-template <typename A, typename B>
-bool operator!=(const Fingerprint<A>& a, const itlib::ref_ptr<B>& b) noexcept {
+template <typename T>
+bool operator!=(const Fingerprint& a, const itlib::ref_ptr<T>& b) noexcept {
     return !a.sameAs(b);
 }
 
