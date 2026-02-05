@@ -46,6 +46,10 @@ public:
         Transaction(const Transaction&) = delete;
         Transaction& operator=(const Transaction&) = delete;
 
+        bool active() const noexcept {
+            return !!m_restoreState;
+        }
+
         // does not complete immediately, just reverts changes
         void revert() {
             assert(m_restoreState);

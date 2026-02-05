@@ -23,6 +23,10 @@ public:
     NodeTransaction(const NodeTransaction&) = delete;
     NodeTransaction& operator=(const NodeTransaction&) = delete;
 
+    bool active() const noexcept {
+        return !!m_restoreState;
+    }
+
     // does not complete immediately, just reverts changes
     void revert() {
         assert(m_restoreState);
@@ -55,6 +59,10 @@ public:
     using NodeRef<T>::operator->;
     using NodeRef<T>::operator*;
     using NodeRef<T>::r;
+
+    Detached<T> detach() const noexcept {
+        return this->m_node->detach();
+    }
 
     ~NodeTransaction() {
         if (!m_restoreState) {

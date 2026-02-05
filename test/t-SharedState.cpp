@@ -24,6 +24,7 @@ TEST_CASE("basic") {
 
     {
         auto t = r1.transaction();
+        CHECK(t.active());
     }
 
     CHECK(stats.total == 1);
@@ -70,6 +71,7 @@ TEST_CASE("basic") {
         t->age = 1000;
         CHECK(t->age == 1000);
         t.abort();
+        CHECK_FALSE(t.active());
     }
 
     r = r1.detach();
@@ -129,7 +131,7 @@ struct MtTest {
     {}
 };
 
-TEST_CASE("Single writer") {
+TEST_CASE("MT") {
     Node<Company> acme;
     acme->name = "ACME";
     acme->ceo->data = PersonData("Jane", 55);

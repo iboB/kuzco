@@ -20,6 +20,7 @@ TEST_CASE("basic") {
 
     {
         NodeTransaction t(state);
+        CHECK(t.active());
     }
 
     CHECK(stats.total == 1);
@@ -50,6 +51,7 @@ TEST_CASE("basic") {
 
     {
         NodeTransaction t(state);
+        CHECK(t.active());
         t->age = 456;
     }
 
@@ -66,6 +68,7 @@ TEST_CASE("basic") {
         t->age = 1000;
         CHECK(t->age == 1000);
         t.abort();
+        CHECK_FALSE(t.active());
     }
 
     r = state.detach();
