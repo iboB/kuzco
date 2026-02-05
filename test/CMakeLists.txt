@@ -12,6 +12,7 @@ endmacro()
 kuzco_test(Node)
 kuzco_test(NodeRef)
 kuzco_test(NodeTransaction)
+kuzco_test(Fingerprint)
 
 kuzco_test(SharedState)
 

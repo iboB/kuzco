@@ -3,6 +3,7 @@
 //
 #pragma once
 #include "Detached.hpp"
+#include "Fingerprint.hpp"
 #include <memory>
 #include <type_traits>
 #include <stdexcept>
@@ -71,6 +72,17 @@ public:
     T& operator*() { return *get(); }
 
     Detached<T> detach() const noexcept { return m_ptr; }
+    Fingerprint<T> fingerprint() const noexcept { return m_ptr; }
+
+    template <typename U>
+    bool sameAs(const Detached<U>& other) const noexcept {
+        return m_ptr.get() == other.get();
+    }
+
+    template <typename U>
+    bool sameAs(const Fingerprint<U>& other) const noexcept {
+        return other.sameAs(m_ptr);
+    }
 
     auto operator<=>(const OptNode& other) const noexcept = default;
 protected:
@@ -115,21 +127,38 @@ protected:
     using Super::reset;
 };
 
-template <typename T, typename U>
-bool operator==(const Detached<T>& a, const OptNode<U>& b) noexcept {
-    return a.get() == b.get();
+template <typename A, typename B>
+bool operator==(const Detached<A>& a, const OptNode<B>& b) noexcept {
+    return b.sameAs(a);
 }
-template <typename T, typename U>
-bool operator!=(const Detached<T>& a, const OptNode<U>& b) noexcept {
-    return a.get() != b.get();
+template <typename A, typename B>
+bool operator!=(const Detached<A>& a, const OptNode<B>& b) noexcept {
+    return !b.sameAs(a);
 }
-template <typename T, typename U>
-bool operator==(const OptNode<T>& a, const Detached<U>& b) noexcept {
-    return a.get() == b.get();
+template <typename A, typename B>
+bool operator==(const OptNode<A>& a, const Detached<B>& b) noexcept {
+    return a.sameAs(b);
 }
-template <typename T, typename U>
-bool operator!=(const OptNode<T>& a, const Detached<U>& b) noexcept {
-    return a.get() != b.get();
+template <typename A, typename B>
+bool operator!=(const OptNode<A>& a, const Detached<B>& b) noexcept {
+    return !a.sameAs(b);
+}
+
+template <typename A, typename B>
+bool operator==(const Fingerprint<A>& a, const OptNode<B>& b) noexcept {
+    return b.sameAs(a);
+}
+template <typename A, typename B>
+bool operator!=(const Fingerprint<A>& a, const OptNode<B>& b) noexcept {
+    return !b.sameAs(a);
+}
+template <typename A, typename B>
+bool operator==(const OptNode<A>& a, const Fingerprint<B>& b) noexcept {
+    return a.sameAs(b);
+}
+template <typename A, typename B>
+bool operator!=(const OptNode<A>& a, const Fingerprint<B>& b) noexcept {
+    return !a.sameAs(b);
 }
 
 } // namespace kuzco
