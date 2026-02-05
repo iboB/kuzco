@@ -20,6 +20,7 @@ TEST_CASE("unique") {
 
 TEST_CASE("basic") {
     Fingerprint fp;
+    CHECK_FALSE(fp);
 
     Node<PersonData> n;
     auto d = n.detach();
@@ -30,6 +31,7 @@ TEST_CASE("basic") {
     CHECK(fp != d);
 
     fp = n.fingerprint();
+    CHECK(fp);
     Fingerprint fp2 = d;
 
     CHECK(fp == fp2);
@@ -47,4 +49,7 @@ TEST_CASE("basic") {
     fp2 = n.fingerprint();
     CHECK(fp2 == n);
     CHECK(fp != fp2);
+
+    fp.reset();
+    CHECK_FALSE(fp);
 }

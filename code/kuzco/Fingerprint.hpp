@@ -67,6 +67,11 @@ public:
         return *this;
     }
 
+    explicit operator bool() const noexcept {
+        std::weak_ptr<void> empty;
+        return m_fp.owner_before(empty) || empty.owner_before(m_fp);
+    }
+
     void reset() noexcept {
         m_fp.reset();
     }
