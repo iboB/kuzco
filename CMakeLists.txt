@@ -45,3 +45,7 @@ if(KUZCO_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif()
+
+if(KUZCO_BUILD_EXAMPLES)
+    add_subdirectory(example)
+endif()
