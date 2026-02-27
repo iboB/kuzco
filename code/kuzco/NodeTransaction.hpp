@@ -12,7 +12,9 @@ namespace kuzco {
 
 template <typename T>
 class NodeTransaction : private NodeRef<T> {
+protected:
     // a copy of the root at the beginning of the transaction
+    // we also use this to indicate the transaction state (null means complete)
     itlib::ref_ptr<T> m_restoreState;
 public:
     explicit NodeTransaction(Node<T>& node)
@@ -47,7 +49,7 @@ public:
     }
 
     // complete, either committing or aborting based on commit flag
-    // returns whether state changed)
+    // returns whether state changed
     bool complete(bool commit = true) {
         if (!commit) {
             abort();

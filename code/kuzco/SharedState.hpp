@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "Node.hpp"
-#include "NodeRef.hpp"
+#include "NodeTransaction.hpp"
 
 #include <itlib/atomic_shared_ptr_storage.hpp>
 
@@ -27,50 +27,37 @@ public:
     SharedState(SharedState&&) = delete;
     SharedState& operator=(SharedState&&) = delete;
 
-    class Transaction : private std::unique_lock<std::mutex>, private NodeRef<T>{
-        // a copy of the root at the beginning of the transaction
+    class Transaction : private std::unique_lock<std::mutex>, private NodeTransaction<T>{
+        // NOTE:
         // since m_root is never unique at the beginning of a transaction (there is a strong ref in m_sharedNode).
-        // we can afford to keep this at almost no additional cost
-        // we use this to indicate the transaction state (null means complete)
-        itlib::ref_ptr<T> m_restoreState;
+        // the restore state from NodeTransaction comes at practically no additional cost
 
         AtomicStorage& m_sharedNode;
+
+        using NT = NodeTransaction<T>;
     public:
         Transaction(SharedState& state)
             : std::unique_lock<std::mutex>(state.m_transactionMutex)
-            , NodeRef<T>(state.m_root)
-            , m_restoreState(state.m_root.m_ptr)
+            , NT(state.m_root)
             , m_sharedNode(state.m_sharedNode)
         {}
 
         Transaction(const Transaction&) = delete;
         Transaction& operator=(const Transaction&) = delete;
 
-        bool active() const noexcept {
-            return !!m_restoreState;
-        }
-
-        // does not complete immediately, just reverts changes
-        void revert() {
-            assert(m_restoreState);
-            this->m_node->m_ptr = m_restoreState;
-        }
+        using NT::active;
+        using NT::revert;
 
         // complete reverting changes
         void abort() {
-            assert(m_restoreState);
-            this->m_node->m_ptr = std::exchange(m_restoreState, {});
+            NT::abort();
             this->unlock();
         }
 
         // complete committing changes
         // return value: pair of (new detached state, whether state changed)
         std::pair<Detached<T>, bool> commit() {
-            assert(m_restoreState);
-            auto ret = std::make_pair(
-                this->m_node->detach(),
-                this->m_node->m_ptr != std::exchange(m_restoreState, {})
-            );
+            auto ret = std::make_pair(this->detach(), NT::commit());
 
             if (ret.second) {
                 // store state
@@ -85,18 +72,19 @@ public:
         // return value: pair of (new detached state, whether state changed)
         std::pair<Detached<T>, bool> complete(bool commit = true) {
             if (!commit) {
+                auto ret = std::make_pair(this->m_restoreState->detach(), false);
                 abort();
-                return std::make_pair(this->m_node->detach(), false);
+                return ret;
             }
             return this->commit();
         }
 
-        using NodeRef<T>::operator->;
-        using NodeRef<T>::operator*;
-        using NodeRef<T>::r;
+        using NT::operator->;
+        using NT::operator*;
+        using NT::r;
 
         ~Transaction() {
-            if (!m_restoreState) {
+            if (!active()) {
                 // explicitly or implicitly completed
                 return;
             }
