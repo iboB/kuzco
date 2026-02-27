@@ -29,9 +29,9 @@ public:
 
     class Transaction : private std::unique_lock<std::mutex>, private NodeRef<T>{
         // a copy of the root at the beginning of the transaction
-        // since m_root is never unique at the beginning of a transaction (there a ref in m_sharedNode)
+        // since m_root is never unique at the beginning of a transaction (there is a strong ref in m_sharedNode).
         // we can afford to keep this at almost no additional cost
-        // we also use this to indicate the transaction state (null means complete)
+        // we use this to indicate the transaction state (null means complete)
         itlib::ref_ptr<T> m_restoreState;
 
         AtomicStorage& m_sharedNode;

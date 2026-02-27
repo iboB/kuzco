@@ -4,36 +4,36 @@
 namespace kuzco {
 
 // Fingerprints are a weak reference to Nodes which can be used if a Node/Detached is the same as a
-// previously oberved one, without keeping it alive (and all of its resource usage)
+// previously observed one, without keeping it alive (and all of its resource usage)
 // They, however cannot be locked as std::weak_ptr
 // This would introduce potentially concurrent ref count bumps from 1 to 2 which breaks Node::unique()
 //
 // DANGER!
 //
-// Currently nodes are implemented through std::shared_ptr in order to maitain compatibility with
-// existing/external APIs
-// Thus Fingerprint is implemented through std::weak_ptr
+// Currently nodes are implemented through std::shared_ptr in order to maintain compatibility with
+// existing/external APIs. Therefore Fingerprint is implemented through std::weak_ptr.
 // Since nodes rely on `unique()` to decide when to copy and unique is basically `use_count() == 1`,
-// So, a Fingerprint to a node will not affect unique.
-// Thus, a node can change since there are only fingeprints pointing to it and these fingerprints will
-// not be able to detect the change.
-// Ideally unique would check both the strong and weak ref counts, (strong==1 && weak==0),
-// but std::shared_ptr hides the weak one.
+// a Fingerprint to a node will not affect unique.
+// Thus, a node can change and if only fingerprints are pointing to it, they will not be able to
+// detect the change.
+// Ideally `unique` would check both the strong and weak ref counts, (strong==1 && weak==0),
+// but std::shared_ptr hides the weak ref count.
 //
-// The only solution to this problem is to use a custom shared pointer like, say xmem::shared_ptr
+// The only solution to this problem is to use a custom shared pointer, say xmem::shared_ptr
 // (https://github.com/iboB/xmem), but this will break the compatibility with existing/external APIs
 //
-// So, it is prehaps part of the future to switch to xmem and ditch std::shared_ptr, but for now
+// So, it is perhaps part of the future to switch to xmem and ditch std::shared_ptr, but for now
 // USE FINGERPRINTS ONLY WHEN YOU KNOW WHAT YOU ARE DOING
 //
 // An example of safe use is on immutable nodes, which are always copied on write and don't make use
-// of the unique() optiization. Such is the case when using NodeTransaction. In a transaction,
+// of the `unique()` optimization. Such is the case when using `NodeTransaction`. In a transaction
 // the node is never unique as a restore state is always kept.
 //
 // Other safe uses may exist.
 //
-// For cases when you know the use is not safe, for now one must use alternative mechanisms for fingerprinting
-// like revisions or hashes.
+// For cases when you're not sure that the use is safe (or when you know it's not) for now you must
+// use alternative mechanisms for fingerprinting like revisions or hashes, or just keep a strong ref
+// (Detached) and sacrifice the resources.
 
 class Fingerprint {
     std::weak_ptr<const void> m_fp;
