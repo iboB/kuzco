@@ -16,8 +16,11 @@ namespace kuzco {
 // a Fingerprint to a node will not affect unique.
 // Thus, a node can change and if only fingerprints are pointing to it, they will not be able to
 // detect the change.
-// Ideally `unique` would check both the strong and weak ref counts, (strong==1 && weak==0),
-// but std::shared_ptr hides the weak ref count.
+//
+// Ideally `unique` would be split in two: one for strong refs and one for weak refs and then:
+// * if the strong count is > 1, the we need to do a full CoW
+// * if the weak count is > 0, we can reallocate the pointer and move the value without copying
+// Unfortunately std::shared_ptr hides the weak ref count.
 //
 // The only solution to this problem is to use a custom shared pointer, say xmem::shared_ptr
 // (https://github.com/iboB/xmem), but this will break the compatibility with existing/external APIs
@@ -28,6 +31,8 @@ namespace kuzco {
 // An example of safe use is on immutable nodes, which are always copied on write and don't make use
 // of the `unique()` optimization. Such is the case when using `NodeTransaction`. In a transaction
 // the node is never unique as a restore state is always kept.
+//
+// If you always reallocate and only copy when not `unique` (otherwise move), this is also safe.
 //
 // Other safe uses may exist.
 //
