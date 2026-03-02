@@ -11,7 +11,6 @@
 namespace kuzco {
 
 template <typename> class NodeTransaction;
-template <typename> class SharedState;
 
 template <typename T>
 class OptNode {
@@ -90,7 +89,6 @@ protected:
     itlib::ref_ptr<T> m_ptr;
 
     friend class NodeTransaction<T>;
-    friend class SharedState<T>;
 };
 
 template <typename T>

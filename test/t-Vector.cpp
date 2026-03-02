@@ -3,7 +3,7 @@
 //
 #include <doctest/doctest.h>
 
-#include <kuzco/SharedState.hpp>
+#include <kuzco/NodeTransaction.hpp>
 #include <kuzco/StdVector.hpp>
 
 #include <cstring>
@@ -170,7 +170,11 @@ TEST_CASE("Vector is a vector")
 }
 
 template <typename T>
-using State = kuzco::SharedState<VecState<T>>;
+struct State {
+    kuzco::Node<VecState<T>> state;
+    auto detach() const { return state.detach(); }
+    auto transaction() { return kuzco::NodeTransaction{state}; }
+};
 
 TEST_CASE("State vector")
 {
