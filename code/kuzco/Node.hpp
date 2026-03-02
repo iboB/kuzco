@@ -51,7 +51,7 @@ public:
     // note that this function is not const
     // a const node is considered detached and immutable, so uniqueness is irrelevant (and potentially racy)
     // the only source of refs (and thus uniqueness) is the state owner
-    // oterwise this is equivalent to the now extinct std::shared_ptr::unique (use_count() == 1)
+    // otherwise this is equivalent to the now extinct std::shared_ptr::unique (use_count() == 1)
     // nullptr is not considered unique in our case
     bool unique() noexcept {
         return m_ptr.unique();
