@@ -33,21 +33,12 @@ private:
     using Super::data;
 public:
 
-    // hide non const versions of these
-    const_iterator begin() const { return Super::begin(); }
-    const_iterator end() const { return Super::end(); }
-    const_reverse_iterator rbegin() const { return Super::rbegin(); }
-    const_reverse_iterator rend() const { return Super::rend(); }
-    const value_type& operator[](size_type i) const { return Super::operator[](i); }
-    const_reference front() const { return Super::front(); }
-    const_reference back() const { return Super::back(); }
-
     // item mutators
     value_type& modify(size_type i) { return Super::operator[](i); }
 
     template <typename Pred>
     NodeRef<T> find_if(Pred f) {
-        for (auto i = Super::begin(); i != Super::end(); ++i) {
+        for (auto i = this->begin(); i != this->end(); ++i) {
             if (f(i->r())) {
                 return NodeRef<T>(*i);
             }

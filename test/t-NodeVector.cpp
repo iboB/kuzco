@@ -38,9 +38,9 @@ TEST_CASE("modifiers")
 
     {
         auto v = src;
-        CHECK(v[0]->val == 0);
+        CHECK(v[0].r().val == 0);
         v.modify(0) = X{12};
-        CHECK(v[0]->val == 12);
+        CHECK(v[0].r().val == 12);
 
         CHECK(stats.c_ctr == 0);
         CHECK(stats.d_ctr == 11);
