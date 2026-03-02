@@ -10,9 +10,12 @@
 
 namespace kuzco {
 
+// an abortable transaction which stores the initial state and allows reverting to it
+// note that this means that any changes done with this transaction will do a CoW,
+// even if the node is unique
+
 template <typename T>
 class NodeTransaction : private NodeRef<T> {
-protected:
     // a copy of the root at the beginning of the transaction
     // we also use this to indicate the transaction state (null means complete)
     itlib::ref_ptr<T> m_restoreState;
@@ -25,8 +28,16 @@ public:
     NodeTransaction(const NodeTransaction&) = delete;
     NodeTransaction& operator=(const NodeTransaction&) = delete;
 
+    bool done() const noexcept {
+        return !m_restoreState;
+    }
+
     bool active() const noexcept {
-        return !!m_restoreState;
+        return !done();
+    }
+
+    Detached<T> restoreState() const noexcept {
+        return m_restoreState;
     }
 
     // does not complete immediately, just reverts changes
@@ -62,6 +73,9 @@ public:
     using NodeRef<T>::operator*;
     using NodeRef<T>::r;
 
+    // be careful with this unless you complete the transaction immediately after calling it
+    // 1. the result is an intermediate state which may be subsequently changed
+    // 2. this creates a strong ref to the node, which, if living, guarantees a CoW on the next change
     Detached<T> detach() const noexcept {
         return this->m_node->detach();
     }

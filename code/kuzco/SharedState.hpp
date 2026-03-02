@@ -45,8 +45,10 @@ public:
         Transaction(const Transaction&) = delete;
         Transaction& operator=(const Transaction&) = delete;
 
+        using NT::done;
         using NT::active;
         using NT::revert;
+        using NT::restoreState;
 
         // complete reverting changes
         void abort() {
@@ -72,7 +74,7 @@ public:
         // return value: pair of (new detached state, whether state changed)
         std::pair<Detached<T>, bool> complete(bool commit = true) {
             if (!commit) {
-                auto ret = std::make_pair(this->m_restoreState->detach(), false);
+                auto ret = std::make_pair(restoreState(), false);
                 abort();
                 return ret;
             }
