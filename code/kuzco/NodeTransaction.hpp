@@ -80,19 +80,25 @@ public:
         return this->m_node->detach();
     }
 
-    ~NodeTransaction() {
-        if (!m_restoreState) {
+    // use in classes derived from NodeTransaction which also shadow abort, commit, or both
+    template <typename Transaction>
+    static void destructorComplete(Transaction& t) {
+        if (!t.active()) {
             // manually completed
             return;
         }
 
         if (std::uncaught_exceptions()) {
             // something bad is happening, abort
-            abort();
+            t.abort();
         }
         else {
-            commit();
+            t.commit();
         }
+    }
+
+    ~NodeTransaction() {
+        destructorComplete(*this);
     }
 };
 
