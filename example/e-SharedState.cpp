@@ -1,11 +1,15 @@
-// an example of a shared state which multiple threads can
-// * read: atomically load
-// * write: transaction which atomically stores the new state on commit
+// Copyright (c) Borislav Stanimirov
+// SPDX-License-Identifier: MIT
+//
 #include <kuzco/Node.hpp>
 #include <kuzco/NodeTransaction.hpp>
 #include <itlib/atomic_shared_ptr_storage.hpp>
 #include <mutex>
 #include <utility>
+
+// an example of a shared state which multiple threads can
+// * read: atomically load
+// * write: transaction which atomically stores the new state on commit
 
 template <typename T>
 class SharedState {
