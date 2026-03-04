@@ -3,11 +3,11 @@
 //
 #include "TestTypes.hpp"
 #include <kuzco/NodeTransaction.hpp>
+#include <kuzco/AtomicDetachedStorage.hpp>
 
 #include <doctest/doctest.h>
 #include <doctest/util/lifetime_counter.hpp>
 
-#include <itlib/atomic_shared_ptr_storage.hpp>
 #include <mutex>
 #include <random>
 #include <thread>
@@ -17,10 +17,9 @@ using namespace kuzco;
 
 template <typename T>
 class SharedState {
-    using AtomicStorage = itlib::atomic_shared_ptr_storage<const T>;
 public:
     SharedState(Node<T> obj)
-        : m_sharedNode(obj.detach()._as_shared_ptr_unsafe())
+        : m_sharedNode(obj)
         , m_root(std::move(obj))
     {}
 
@@ -34,7 +33,7 @@ public:
         // since m_root is never unique at the beginning of a transaction (there is a strong ref in m_sharedNode).
         // the restore state from NodeTransaction comes at practically no additional cost
 
-        AtomicStorage& m_sharedNode;
+        AtomicDetachedStorage<T>& m_sharedNode;
 
         using NT = NodeTransaction<T>;
     public:
@@ -65,7 +64,7 @@ public:
 
             if (ret.second) {
                 // store state
-                m_sharedNode.store(ret.first._as_shared_ptr_unsafe());
+                m_sharedNode.store(ret.first);
             }
 
             this->unlock();
@@ -109,11 +108,11 @@ public:
 
     // atomic snapshot of the current state
     Detached<T> detach() const {
-        return Detached<T>::_from_shared_ptr_unsafe(m_sharedNode.load());
+        return m_sharedNode.detach();
     }
 
 protected:
-    itlib::atomic_shared_ptr_storage<const T> m_sharedNode;
+    AtomicDetachedStorage<T> m_sharedNode;
 
     std::mutex m_transactionMutex;
     // mutable root, modified during transaction, not thread safe
