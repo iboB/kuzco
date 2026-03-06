@@ -72,6 +72,7 @@ public:
     using NodeRef<T>::operator->;
     using NodeRef<T>::operator*;
     using NodeRef<T>::r;
+    using NodeRef<T>::operator=;
 
     // be careful with this unless you complete the transaction immediately after calling it
     // 1. the result is an intermediate state which may be subsequently changed
