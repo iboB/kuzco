@@ -26,6 +26,7 @@ public:
     void reset(Node& n) { m_node = &n; }
 
     Node& operator=(Node&& other) { return m_node->operator=(std::move(other)); }
+    Node& operator=(const Node& other) { return m_node->operator=(other); }
 
     template <typename U, std::enable_if_t<std::is_assignable_v<T&, U>, int> = 0>
     Node& operator=(U&& u) { return m_node->operator=(std::forward<U>(u)); }
