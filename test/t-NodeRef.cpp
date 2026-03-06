@@ -17,8 +17,8 @@ TEST_CASE("node ref")
     ref.reset(i);
     CHECK(!!ref);
 
-    CHECK(*ref == 5);
-    *ref = 8;
+    CHECK(ref.r() == 5);
+    ref = 8;
     CHECK(*i == 8);
 
     kuzco::Node<int> i2 = 33;

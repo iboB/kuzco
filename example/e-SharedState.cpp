@@ -79,8 +79,8 @@ public:
         }
 
         using NT::operator->;
-        using NT::operator*;
         using NT::r;
+        using NT::cow;
 
         ~Transaction() {
             if (!active()) {
@@ -231,7 +231,7 @@ int main() {
         std::shuffle(localWrites.begin(), localWrites.end(), rnd);
         for (auto& f : localWrites) {
             auto t = state.transaction();
-            f(*t);
+            f(t.cow());
         }
     };
     auto writer = [&]() {

@@ -68,7 +68,14 @@ public:
         return m_ptr.get();
     }
     T* operator->() { return get(); }
-    T& operator*() { return *get(); }
+
+    // operator* is deliberately not provided as it is too easy to accidentally trigger a
+    // copy-on-write when you just want to read or completely overwrite the data
+    // T& operator*() { return *get(); }
+    // use the provided assignment operator to completely overwrite the data and
+    // r() to read the data without triggering a copy-on-write
+    // if you really want exactly this, use cow() to make it explicit
+    T& cow() { return *get(); }
 
     Detached<T> detach() const noexcept { return m_ptr; }
     Fingerprint fingerprint() const noexcept { return m_ptr; }

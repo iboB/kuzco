@@ -83,8 +83,8 @@ public:
         }
 
         using NT::operator->;
-        using NT::operator*;
         using NT::r;
+        using NT::cow;
 
         ~Transaction() {
             if (!active()) {
@@ -190,7 +190,7 @@ struct MtTest {
         std::shuffle(localWrites.begin(), localWrites.end(), rnd);
         for (auto& f : localWrites) {
             auto t = state.transaction();
-            f(*t);
+            f(t.cow());
         }
     }
 

@@ -32,10 +32,9 @@ public:
     Node& operator=(U&& u) { return m_node->operator=(std::forward<U>(u)); }
 
     const T& r() const { return m_node->r(); }
+    T& cow() { return m_node->cow(); }
 
     T* operator->() { return m_node->operator->(); }
-    T& operator*() { return m_node->operator*(); }
-
 protected:
     Node* m_node = nullptr;
 };
